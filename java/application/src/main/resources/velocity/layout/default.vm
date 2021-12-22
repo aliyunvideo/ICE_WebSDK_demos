@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+    $!{screen_content}
+
+<hr/>
+<a href="/">Home</a>
+</body>
+</html>

@@ -1,0 +1,16 @@
+XSS
+<ul>
+    <li><a href="/xss/form">Velocity转义</a></li>
+    <li><a href="/xss/ignored">Velocity文件转义忽略</a></li>
+</ul>
+
+JSONP
+<ul>
+    <li><a href="/jsonp/data">JSON输出</a> | <a href="/jsonp/data?callback=my">JSONP输出</a></li>
+</ul>
+
+HTTP
+<ul>
+    <li><a href="/http/redirect?url=/http/page">内部跳转</a></li>
+    <li><a href="/http/redirect?url=http://www.baidu.com">外部跳转到Baidu.com</a></li>
+</ul>

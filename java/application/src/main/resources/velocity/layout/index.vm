@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>It works.</h1>
+    <br/>
+    <pre>
+    Locale :  $!{text.getLocale()}
+    Date   :  $!{dateTool.now()}
+    </pre>
+    <hr/>
+    $!{screen_content}
+	<hr/>
+</body>
+</html>
