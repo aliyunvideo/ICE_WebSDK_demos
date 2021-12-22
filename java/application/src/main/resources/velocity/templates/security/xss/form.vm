@@ -1,0 +1,58 @@
+<pre>
+    <h1>自定义一些变量，这些变量都带有html/js标签，存在XSS</h1>
+    \#set($code = "&lt;script&gt;alert(1);&lt;/script&gt;") : #set($code = "<script>alert(1);</script>")
+
+    \#set($code2 = "&lt;span&gt;PandoraBoot&lt;/span&gt;") : #set($code2 = "<span>PandoraBoot</span>")
+
+    \#set($code3 = "&lt;div&gt;:D&lt;/div&gt;") : #set($code3 = "<div>:D</div>")
+
+    <br />
+
+    <h1>before ignore:</h1>
+    <br />
+
+    \$code : $code
+
+    <br />
+
+    \$code2 : $!code2
+
+    <br />
+
+    \${code3} : ${code3}
+
+    <br />
+
+    \$!{ignoredName} (This is ignored by framework in application.properties through "spring.security.xss.ignored.context.names=ignoredName"): $!{ignoredName}
+
+    <h1>after ignore by \#xss_ignored:</h1>
+
+    \#xss_ignored(\$code,\$!code2,\${code3}) #xss_ignored($code,$!code2,${code3})
+
+    <br />
+
+    \$code : $code
+
+    <br />
+
+    \$code2 : $!code2
+
+    <br />
+
+    \${code3} : ${code3}
+
+    <br />
+
+    \$!{ignoredName} : $!{ignoredName}
+
+    <hr />
+
+    <h1>save name : </h1>
+
+    <form method="GET" action="/xss/save">
+        Name: <input type="text" name="name" value="$code"/>
+        <br />
+        <input type="submit" value="Save"/>
+    </form>
+
+</pre>

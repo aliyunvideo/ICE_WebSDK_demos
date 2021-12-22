@@ -1,0 +1,10 @@
+<h1>这里演示通过application.properties: spring.security.xss.ignored.files=xss/ignored.vm 来忽略整个模板的渲染</h1>
+#set( $code = "<span>PandoraBoot</span>" )
+
+\$!code : $!code
+
+<br />
+
+#set( $code = "<script>alert(1);</script>" )
+
+\$!code : $!code
