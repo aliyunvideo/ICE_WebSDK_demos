@@ -13,10 +13,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-actuator-autoconfigure</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.alibaba.boot</groupId>
             <artifactId>velocity-spring-boot-starter</artifactId>
         </dependency>
