@@ -17,12 +17,15 @@ npm run build
 ln -s "$(pwd)/fe" java/application/src/main/resources
 ```
 
-在 OpenApiController 中填写自己的 AK、SK
+在 java/application/src/main/java/demo/controller/OpenApiController.java 中填写自己的 AK、SK
 
-将工程导入 eclipse 或者 idea 后，直接执行包含 main 方法的类 `demo.Application`
+将工程导入 eclipse 或者 idea 等IDE后，直接执行包含 main 方法的类 `demo.Application`
 
-浏览器打开 http://localhost:7001/ 即可
+注意：不要将整个 ICE_WEBSDK_demos 文件夹导入IDE，仅需导入 ICE_WEBSDK_demos/java 文件夹
 
+浏览器打开 http://localhost:7001/ 
+
+具体使用说明请参考 java/README.md
 
 ### 2.2 使用 Node.js 服务端
 先使用软链接将前端打包后的资源链接到 nodejs 目录下，然后安装依赖
