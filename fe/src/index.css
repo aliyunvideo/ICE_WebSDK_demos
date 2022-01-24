@@ -20,7 +20,7 @@ code {
 }
 
 .item.selected {
-  outline: 2px solid blue;
+  outline: 2px solid #1890ff;
   outline-offset: 5px;
 }
 
@@ -45,4 +45,8 @@ code {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.ant-tabs.ant-tabs-top {
+  overflow: auto;
 }
