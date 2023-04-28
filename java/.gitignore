@@ -21,3 +21,4 @@ nbbuild/
 dist/
 nbdist/
 /securitysdk.log
+application/src/main/resources/fe

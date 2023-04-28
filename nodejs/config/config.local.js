@@ -19,6 +19,7 @@ module.exports = appInfo => {
       dir: path.join(appInfo.baseDir, 'fe/build'),
       alias: {
         '/': '/index.html',
+        '\\': '\\index.html',
       },
     },
     notfound: {
