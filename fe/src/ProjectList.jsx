@@ -53,7 +53,7 @@ function ProjectList () {
       </div>
       {showModal && (
         <Modal
-          visible
+          open
           title='创建剪辑工程'
           okText='提交'
           cancelText='取消'

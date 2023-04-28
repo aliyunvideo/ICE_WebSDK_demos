@@ -10,6 +10,7 @@
     "@alicloud/ice20201109": "^1.1.5",
     "@alicloud/openapi-client": "^0.3.8",
     "@alicloud/tea-util": "^1.4.2",
+    "dotenv": "^16.0.3",
     "egg": "^2.15.1",
     "egg-cors": "^2.2.3",
     "egg-scripts": "^2.11.0"

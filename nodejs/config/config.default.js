@@ -1,6 +1,10 @@
+
 /* eslint valid-jsdoc: "off" */
 
 'use strict';
+
+const dotenv = require('dotenv');
+dotenv.config();
 
 /**
  * @param {Egg.EggAppInfo} appInfo app info
@@ -21,10 +25,10 @@ module.exports = appInfo => {
   // add your user config here
   const userConfig = {
     iceConfig: {
-      accessKeyId: '<your access key>',
-      accessKeySecret: '<your secret key>',
-      endpoint: 'ice.cn-hangzhou.aliyuncs.com',
-      regionId: 'cn-hangzhou',
+      accessKeyId: process.env.AccessKeyId || '<your access key>',
+      accessKeySecret: process.env.AccessKeySecret || '<your secret key>',
+      endpoint: process.env.Endpoint || 'ice.cn-hangzhou.aliyuncs.com',
+      regionId: process.env.RegionId || 'cn-hangzhou',
     },
   };
 

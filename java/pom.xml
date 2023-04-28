@@ -21,7 +21,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <mockito-all.version>1.10.19</mockito-all.version>
         <maven-antrun.version>1.8</maven-antrun.version>
-        <spring-boot.version>2.6.2</spring-boot.version>
+        <spring-boot.version>2.1.13.RELEASE</spring-boot.version>
         <velocity.starter.version>1.0.4.RELEASE</velocity.starter.version>
 
     </properties>
