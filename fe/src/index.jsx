@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import {BrowserRouter} from 'react-router-dom'
+import {HashRouter} from 'react-router-dom'
 import {ConfigProvider} from 'antd'
 import './index.css'
 import App from './App'
@@ -11,10 +11,10 @@ ConfigProvider.config({
 });
 
 ReactDOM.render(
-  <BrowserRouter>
+  <HashRouter>
     <ConfigProvider prefixCls='biz-ant' iconPrefixCls='biz-anticon' >
       <App />
     </ConfigProvider>
-  </BrowserRouter>,
+  </HashRouter>,
   document.getElementById('root')
 )
