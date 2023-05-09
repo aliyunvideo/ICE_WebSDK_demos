@@ -81,7 +81,7 @@ function SearchMediaModal (props) {
 
   return (
     <Modal
-      visible
+      open
       title='选择媒资导入'
       onOk={handleSubmit}
       onCancel={onClose}

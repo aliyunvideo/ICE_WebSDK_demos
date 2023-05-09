@@ -75,8 +75,47 @@ export function request (action, params) {
   })
 }
 
+export function requestGet(action, params){
+  return axios.get('http://localhost:7001/openApi', {
+    params:{
+        ...params,
+      Action: action
+    },
+
+  })
+}
+
 export function formatTime (s) {
   const minutes = Math.floor(s / 60)
   const seconds = s - minutes * 60
   return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${Math.floor(seconds)}`
+}
+
+
+// 轮询
+export async function poll(fn, fnCondition, ms, timeout = 1000 * 60 * 30) {
+  const startTime = Date.now();
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+  let result = await fn();
+  while (fnCondition(result)) {
+    const currentTime = Date.now();
+    if (currentTime - startTime > timeout - ms) {
+      return {
+        timeout: true,
+        result,
+      };
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+    // eslint-disable-next-line no-await-in-loop
+    result = await fn();
+  }
+  return {
+    timeout: false,
+    result,
+  };
 }

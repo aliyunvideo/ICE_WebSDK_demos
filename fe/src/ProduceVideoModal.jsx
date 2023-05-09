@@ -66,7 +66,7 @@ function ProduceVideoModal (props) {
 
   return (
     <Modal
-      visible
+      open
       title='提交合成任务'
       okText='提交'
       cancelText='取消'
