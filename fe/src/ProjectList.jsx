@@ -1,31 +1,34 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Button, Card, Form, Input, Modal } from 'antd'
-import { request } from './utils'
+import {useEffect, useState} from 'react'
+import {Link} from 'react-router-dom'
+import {Button, Card, Form, Input, Modal, List, Pagination} from 'antd'
+import {request} from './utils'
 
 const layout = {
-  labelCol: { span: 4 },
-  wrapperCol: { span: 20 }
+  labelCol: {span: 4},
+  wrapperCol: {span: 20}
 }
-
-function ProjectList () {
+const PageSize = 10;
+function ProjectList() {
   const [list, setList] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [confirmLoading, setConfirmLoading] = useState(false)
   const [version, setVersion] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [pageNo, setPageNo] = useState(1)
   const [form] = Form.useForm()
 
   useEffect(() => {
     request('SearchEditingProject', {
       TemplateType: 'None',
-      PageSize: 10,
-      PageNo: 1
+      PageSize: PageSize,
+      PageNo: pageNo
     }).then(res => {
       if (res.status === 200) {
         setList(res.data.ProjectList)
+        setTotal(res.data.TotalCount)
       }
     })
-  }, [version])
+  }, [version, pageNo])
 
   const handleSubmit = (values) => {
     setConfirmLoading(true)
@@ -42,14 +45,31 @@ function ProjectList () {
     <Card
       extra={<Button type='primary' onClick={() => setShowModal(true)}>创建工程</Button>}
       title='工程列表'
-      style={{ width: 300, margin: '50px auto' }}
+      style={{width: 800, margin: '50px auto'}}
     >
       <div>
-        {list.map((p, i) => (
-          <Link style={{ display: 'block' }} key={p.ProjectId} to={`/detail/${p.ProjectId}`}>
-            {i + 1}. {p.Title}
-          </Link>
-        ))}
+
+        <List
+          dataSource={list}
+          renderItem={(item, index) => {
+            return <List.Item  >
+              <Link style={{display: 'block'}}   to={`/detail/${ item.ProjectId }`}>
+                {index + 1}. {item.Title}
+              </Link>
+              <div>
+                <Link   to={`/detail/${ item.ProjectId }`} target='_blank' >
+                   <Button  style={{marginRight: '10px'}} >编辑</Button>
+                </Link>
+                <Link   to={`/player/${ item.ProjectId }`} target='_blank' >
+                   <Button  >预览</Button>
+                </Link>
+                </div>
+            </List.Item>
+          }}
+        />
+        <Pagination current={pageNo} total={total} pageSize={PageSize} pageSizeOptions={[10]} onChange={(n) => {
+          setPageNo(n);
+        }} />
       </div>
       {showModal && (
         <Modal
@@ -66,7 +86,7 @@ function ProjectList () {
             form={form}
             onFinish={handleSubmit}
           >
-            <Form.Item name='title' label='工程名称' rules={[{ required: true }]}>
+            <Form.Item name='title' label='工程名称' rules={[{required: true}]}>
               <Input />
             </Form.Item>
           </Form>

@@ -1,10 +1,11 @@
 import {useEffect, useRef, useState} from 'react'
 import {useParams} from 'react-router'
-import {message} from 'antd'
+import {Button, message} from 'antd'
 import {get} from 'lodash'
 import SearchMediaModal from './SearchMediaModal'
 import {request, requestGet, transMediaList, poll} from './utils'
 import ProduceVideoModal from './ProduceVideoModal'
+import ProjectPlayerModel from './ProjectPlayerModal'
 
 
 const FONT_FAMILIES = [
@@ -25,6 +26,7 @@ const FONT_FAMILIES = [
 function ProjectDetail() {
   const [showSearchMediaModal, setShowSearchMediaModal] = useState(false)
   const [showProduceVideoModal, setShowProduceVideoModal] = useState(false)
+  const [showProjectPlayerModal, setShowProjectPlayerModel] = useState(false)
   const searchMediaRef = useRef({})
   const produceVideoRef = useRef({})
   const params = useParams()
@@ -39,7 +41,7 @@ function ProjectDetail() {
       // 默认字幕文案
       defaultSubtitleText: '默认文案',
       // 自定义画布比例
-      // defaultAspectRatio: '9:16',
+      defaultAspectRatio: '9:16',
       // 自定义画布比例列表
       customAspectRatioList: ['1:1', '2:1', '4:3', '3:4', '9:16', '16:9', '21:9', '16:10'],
       // 自定义按钮文案
@@ -623,7 +625,23 @@ function ProjectDetail() {
 
   return (
     <div>
+      <div>
+        <Button onClick={()=>{
+           setShowProjectPlayerModel(true)
+        }} >
+           打开预览器
+        </Button>
+      </div>
       <div id='container' style={{height: '100vh'}} />
+      {showProjectPlayerModal
+      &&<ProjectPlayerModel
+        onClose={()=>{
+         setShowProjectPlayerModel(false)
+        }}
+        getTimeline={()=>{
+          return  window.AliyunVideoEditor.getProjectTimeline();
+        }}
+        />}
       {showSearchMediaModal && (
         <SearchMediaModal
           onSubmit={(info) => {
