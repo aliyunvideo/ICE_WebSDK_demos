@@ -1,11 +1,10 @@
 import {useEffect, useRef, useState} from 'react'
 import {useParams} from 'react-router'
-import {Button, message} from 'antd'
-import {get} from 'lodash'
+import { message} from 'antd'
+import {get,lowerFirst} from 'lodash'
 import SearchMediaModal from './SearchMediaModal'
 import {request, requestGet, transMediaList, poll} from './utils'
 import ProduceVideoModal from './ProduceVideoModal'
-import ProjectPlayerModel from './ProjectPlayerModal'
 
 
 const FONT_FAMILIES = [
@@ -23,17 +22,107 @@ const FONT_FAMILIES = [
   'zcool-wenyiti', // 站酷文艺体
 ];
 
+export const transVoiceGroups = (data = []) => {
+  return data.map(({ Type: type, VoiceList = [] }) => {
+    return {
+      type,
+      voiceList: VoiceList.map((item) => {
+        const obj = {};
+        Object.keys(item).forEach((key) => {
+          obj[lowerFirst(key)] = item[key];
+        });
+        return obj;
+      }),
+    };
+  });
+};
+
 function ProjectDetail() {
   const [showSearchMediaModal, setShowSearchMediaModal] = useState(false)
   const [showProduceVideoModal, setShowProduceVideoModal] = useState(false)
-  const [showProjectPlayerModal, setShowProjectPlayerModel] = useState(false)
+
+  const [customVoiceGroups,setCustomVoiceGroups] = useState();
   const searchMediaRef = useRef({})
   const produceVideoRef = useRef({})
   const params = useParams()
   const {projectId} = params
 
+  useEffect(()=>{
+      requestGet('ListSmartVoiceGroups').then((res)=>{
+         const commonItems = transVoiceGroups(get(res, 'data.VoiceGroups', []));
+         const customItems = [
+          {
+            type: '专属人声',
+            emptyContent: {
+              description: '暂无人声 可通过',
+              link: '',
+              linkText: '创建专属人声',
+            },
+            getVoiceList: async (page, pageSize) => {
+              const custRes = await requestGet('ListCustomizedVoices',{ PageNo: page, PageSize: pageSize });
+              const items = get(custRes, 'data.Data.CustomizedVoiceList');
+              const total = get(custRes, 'data.Data.Total');
+              const kv = {
+                story: '故事',
+                interaction: '交互',
+                navigation: '导航',
+              };
+              return {
+                items: items.map((it) => {
+                  return {
+                    desc: it.VoiceDesc || kv[it.Scenario] || it.Scenario,
+                    voiceType: it.Gender === 'male' ? 'Male' : 'Female',
+                    voiceUrl: it.VoiceUrl || '',
+                    tag: it.VoiceDesc || it.Scenario,
+                    voice: it.VoiceId,
+                    name: it.VoiceName || it.VoiceId,
+                    remark: it.Scenario,
+                    demoMediaId: it.DemoAudioMediaId,
+                    custom: true,
+                  };
+                }),
+                total,
+              };
+            },
+            getVoice: async (voiceId) => {
+              const custRes = await requestGet('GetCustomizedVoice',{ VoiceId: voiceId });
+              const item = get(custRes, 'data.Data.CustomizedVoice');
+              const kv = {
+                story: '故事',
+                interaction: '交互',
+                navigation: '导航',
+              };
+
+              return {
+                desc: item.VoiceDesc || kv[item.Scenario] || item.Scenario,
+                voiceType: item.Gender === 'male' ? 'Male' : 'Female',
+                voiceUrl: item.VoiceUrl || '',
+                tag: item.VoiceDesc || item.Scenario,
+                voice: item.VoiceId,
+                name: item.VoiceName || item.VoiceId,
+                remark: item.Scenario,
+                demoMediaId: item.DemoAudioMediaId,
+                custom: true,
+              };
+            },
+            getDemo: async (mediaId) => {
+              const mediaInfo = await requestGet('GetMediaInfo',{ MediaId: mediaId });
+              const src = get(mediaInfo, 'data.MediaInfo.FileInfoList[0].FileBasicInfo.FileUrl');
+              return {
+                src: src,
+              };
+            },
+          },
+        ].concat(commonItems);
+         setCustomVoiceGroups(customItems);
+      })
+  },[])
+
   useEffect(() => {
-    const myLocale = 'zh-CN'
+    const myLocale = 'zh-CN';
+    if(!customVoiceGroups){
+       return;
+    }
 
     window.AliyunVideoEditor.init({
       // 模板模式 参考模板模式接入相关文档：https://help.aliyun.com/document_detail/453481.html?spm=a2c4g.453478.0.0.610148d1ikCUxq
@@ -41,7 +130,7 @@ function ProjectDetail() {
       // 默认字幕文案
       defaultSubtitleText: '默认文案',
       // 自定义画布比例
-      defaultAspectRatio: '9:16',
+      // defaultAspectRatio: '9:16',
       // 自定义画布比例列表
       customAspectRatioList: ['1:1', '2:1', '4:3', '3:4', '9:16', '16:9', '21:9', '16:10'],
       // 自定义按钮文案
@@ -51,6 +140,8 @@ function ProjectDetail() {
         // produceButton: '自定义生成',
         // logoUrl: 'https://www.example.com/assets/example-logo-url.png' 自定义logo
       },
+      // 自定义人声
+      customVoiceGroups,
       // 自定义字体
       customFontList: FONT_FAMILIES.concat([{
         key: '阿朱泡泡体', // 需要是唯一的key，不能与与其他字体相同，中英文均可
@@ -361,14 +452,20 @@ function ProjectDetail() {
         const bucket = StorageLocation.split('.')[0];
         const path = Path;
         const filename = `${ text.slice(0, 10) }${ Date.now() }`;
-
-        // 1-提交智能配音任务
-        const res1 = await request('SubmitAudioProduceJob', { // https://help.aliyun.com/document_detail/212273.html
-          EditingConfig: JSON.stringify({
+        const editingConfig = voiceConfig.custom
+        ? {
+            customizedVoice: voice,
+            format: 'mp3',
+            ...voiceConfig,
+          }
+        : {
             voice,
             format: 'mp3',
             ...voiceConfig,
-          }),
+          };
+        // 1-提交智能配音任务
+        const res1 = await request('SubmitAudioProduceJob', { // https://help.aliyun.com/document_detail/212273.html
+          EditingConfig: JSON.stringify(editingConfig),
           InputConfig: text,
           OutputConfig: JSON.stringify({
             bucket,
@@ -621,27 +718,11 @@ function ProjectDetail() {
     return () => {
       window.AliyunVideoEditor.destroy()
     }
-  }, [projectId])
+  }, [projectId,customVoiceGroups])
 
   return (
     <div>
-      <div>
-        <Button onClick={()=>{
-           setShowProjectPlayerModel(true)
-        }} >
-           打开预览器
-        </Button>
-      </div>
       <div id='container' style={{height: '100vh'}} />
-      {showProjectPlayerModal
-      &&<ProjectPlayerModel
-        onClose={()=>{
-         setShowProjectPlayerModel(false)
-        }}
-        getTimeline={()=>{
-          return  window.AliyunVideoEditor.getProjectTimeline();
-        }}
-        />}
       {showSearchMediaModal && (
         <SearchMediaModal
           onSubmit={(info) => {
