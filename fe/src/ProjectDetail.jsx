@@ -535,12 +535,16 @@ function ProjectDetail() {
       },
       avatarConfig: {
         // 视频输出分辨率码率
-        outputConfigs: [
-          {width: 1080, height: 1920, bitrates: [3000, 2000]},
-          {width: 720, height: 1280, bitrates: [1500, 1000]},
-          {width: 1920, height: 1080, bitrates: [3000, 2000]},
-          {width: 1280, height: 720, bitrates: [1500, 1000]},
-        ],
+
+        filterOutputConfig: (item, configs) => {
+          if (item.outputMask === false) {
+            return [
+              { width: 1920, height: 1080, bitrates: [4000] },
+              { width: 1080, height: 1920, bitrates: [4000] },
+            ];
+          }
+          return configs;
+        },
         // 任务轮询时间（单位毫秒）
         refreshInterval: 2000,
         // 获取官方数字人列表
@@ -554,6 +558,7 @@ function ProjectDetail() {
                 const res = await requestGet("ListSmartSysAvatarModels", {
                   PageNo: pageNo,
                   PageSize: pageSize,
+                  SdkVersion: window.AliyunVideoEditor.version,
                 });
                 if (res && res.status === 200) {
                   return {
@@ -564,6 +569,54 @@ function ProjectDetail() {
                         avatarId: item.AvatarId,
                         coverUrl: item.CoverUrl,
                         videoUrl: item.VideoUrl,
+                        outputMask: item.OutputMask,
+                      };
+                    }),
+                  };
+                }
+                return {
+                  total: 0,
+                  items: [],
+                };
+              },
+            },
+            {
+              id: 'custom',
+              default: false,
+              name: '我的数字人',
+              getItems: async (pageNo, pageSize) => {
+                const res = await requestGet("ListAvatars",{
+                  PageNo: pageNo,
+                  PageSize: pageSize,
+                  SdkVersion: window.AliyunVideoEditor.version,
+                });
+                if (res && res.status === '200') {
+                  const avatarList = get(res, 'data.Data.AvatarList', []);
+                  const coverMediaIds = avatarList.map((aitem) => {
+                    return aitem.Portrait;
+                  });
+
+                  const coverListRes = await requestGet("BatchGetMediaInfos",{
+                    MediaIds: coverMediaIds.join(','),
+                    AdditionType: 'FileInfo',
+                  });
+                  const mediaInfos = get(coverListRes, 'data.MediaInfos');
+
+                  const idCoverMapper = mediaInfos.reduce((result, m) => {
+                    result[m.MediaId] = get(m, 'FileInfoList[0].FileBasicInfo.FileUrl');
+                    return result;
+                  }, {});
+
+                  return {
+                    total: get(res, 'data.TotalCount'),
+                    items: avatarList.map((item) => {
+                      return {
+                        avatarName: item.AvatarName || '',
+                        avatarId: item.AvatarId,
+                        coverUrl: idCoverMapper[item.Portrait],
+                        videoUrl: undefined,
+                        outputMask: false,
+                        transparent: item.Transparent,
                       };
                     }),
                   };
@@ -585,7 +638,17 @@ function ProjectDetail() {
           });
           if (tempFileStorageLocation) {
             const {StorageLocation, Path} = tempFileStorageLocation;
-            const filename = `${ encodeURIComponent(job.title) }-${ Date.now() }.mp4`;
+            /**
+             * 判断数字人是否输出背景透明等格式
+             * outputMask：boolean,需要输出遮罩视频，此时输出的视频格式需要是mp4，会生成一个遮罩视频和纯色背景mp4视频
+             * transparent: boolean,是否透明视频，如果transparent为false，则表示该数字人是带背景的，不能生成透明背景的webm视频
+             * */
+            const { outputMask, transparent } = job.avatar;
+            const filename =
+              outputMask || transparent === false
+                ? `${encodeURIComponent(job.title)}-${Date.now()}.mp4`
+                : `${encodeURIComponent(job.title)}-${Date.now()}.webm`;
+
             const outputUrl = `https://${ StorageLocation }/${ Path }${ filename }`;
             const params = {
               UserData: JSON.stringify(job),
@@ -671,9 +734,12 @@ function ProjectDetail() {
               }
               // 判断生成的视频及透明遮罩视频是否成功
               const fileLength = get(res2, 'data.MediaInfo.FileInfoList', []).length;
+              const { avatar } = job;
               const statusOk =
-                get(res2, 'data.MediaInfo.MediaBasicInfo.Status') === 'Normal' && fileLength >= 2;
-              const result = fileLength >= 2 ? transMediaList([get(res2, 'data.MediaInfo')]) : [];
+              get(res2, 'data.MediaInfo.MediaBasicInfo.Status') === 'Normal' &&
+              (avatar.outputMask ? fileLength >= 2 : fileLength > 0);
+
+              const result = statusOk ? transMediaList([get(res2, 'data.MediaInfo')]) : [];
               video = result[0];
               done = !!video && statusOk;
 
