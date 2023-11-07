@@ -42,10 +42,7 @@
   "ci": {
     "version": "10"
   },
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
+  "repository": "git@gitlab.alibaba-inc.com:thor-server/ICE_WebSDK_demos.git",
   "author": "",
   "license": "MIT"
 }

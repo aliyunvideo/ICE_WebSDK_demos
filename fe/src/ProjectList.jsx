@@ -41,11 +41,19 @@ function ProjectList() {
     })
   }
 
-  return (
+  return (<div>
+
     <Card
-      extra={<Button type='primary' onClick={() => setShowModal(true)}>创建工程</Button>}
+      extra={
+        <div>
+          <Button type='primary' onClick={() => setShowModal(true)}>创建工程</Button>
+          <Button style={{marginLeft: '10px'}} onClick={() => {
+            window.location.href = '/player.html'
+          }} >预览播放器</Button>
+        </div>
+      }
       title='工程列表'
-      style={{width: 800, margin: '50px auto'}}
+      style={{width: 1920, margin: '50px auto'}}
     >
       <div>
 
@@ -53,17 +61,17 @@ function ProjectList() {
           dataSource={list}
           renderItem={(item, index) => {
             return <List.Item  >
-              <Link style={{display: 'block'}}   to={`/detail/${ item.ProjectId }`}>
+              <Link style={{display: 'block'}} to={`/detail/${ item.ProjectId }`}>
                 {index + 1}. {item.Title}
               </Link>
               <div>
-                <Link   to={`/detail/${ item.ProjectId }`} target='_blank' >
-                   <Button  style={{marginRight: '10px'}} >编辑</Button>
+                <Link to={`/detail/${ item.ProjectId }`} target='_blank' >
+                  <Button style={{marginRight: '10px'}} >编辑</Button>
                 </Link>
-                <Link   to={`/player/${ item.ProjectId }`} target='_blank' >
-                   <Button  >预览</Button>
-                </Link>
-                </div>
+                <Button style={{marginLeft: '10px'}} onClick={() => {
+                  window.location.href = `/player.html?projectId=${ item.ProjectId }`
+                }} >预览</Button>
+              </div>
             </List.Item>
           }}
         />
@@ -93,6 +101,7 @@ function ProjectList() {
         </Modal>
       )}
     </Card>
+  </div>
   )
 }
 
