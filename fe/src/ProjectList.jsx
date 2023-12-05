@@ -53,7 +53,7 @@ function ProjectList() {
         </div>
       }
       title='工程列表'
-      style={{width: 1920, margin: '50px auto'}}
+      style={{width: '80%', margin: '50px auto'}}
     >
       <div>
 
@@ -69,7 +69,7 @@ function ProjectList() {
                   <Button style={{marginRight: '10px'}} >编辑</Button>
                 </Link>
                 <Button style={{marginLeft: '10px'}} onClick={() => {
-                  window.location.href = `/player.html?projectId=${ item.ProjectId }`
+                  window.location.href = `/player.html#/projectTimeline/${ item.ProjectId }`
                 }} >预览</Button>
               </div>
             </List.Item>

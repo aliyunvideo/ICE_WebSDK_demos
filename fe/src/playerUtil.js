@@ -53,8 +53,9 @@ export function customFontTimeline() {
                 "FontSize":30,
                 "FontColor":"#333333",
                 "FontColorOpacity":1,
-                "Content":'测试字幕',
+                "Content":'FontUrl自定义字体',
                 "Alignment":"BottomCenter",
+               //  "SizeRequestType":"RealDim",
                 "FontUrl":"https://ice-pub-media.myalicdn.com/mts-fonts/%E7%AB%99%E9%85%B7%E6%96%87%E8%89%BA%E4%BD%93.ttf"
              }
           ]
@@ -69,7 +70,7 @@ export function customFontTimeline() {
     "FEConfig": {
        "AutoProportion": "681:383"
     }
- });
+ },null,4);
 }
 
 export function customSimpleTimeline() {
@@ -139,8 +140,32 @@ export function customSimpleTimeline() {
      "FEConfig": {
         "AutoProportion": "681:383"
      }
-  });
+  },null,4);
 }
+
+export function customServerTimeline() {
+    // 服务端精简Timeline，需要调用API进行转换，前端暂时不支持直接预览
+   return JSON.stringify({
+      "VideoTracks": [
+          {
+              "VideoTrackClips": [
+               {
+                  "Type":"Image",
+                  "MediaId": "37504d00f09b71eda7baf7e7d6786301",// 需要替换成可用的媒资ID
+                  "TimelineIn":0,
+                  "TimelineOut": 5
+              },{
+                  "MediaId": "51b40fa0884571eea24de7f7c7486302"
+              },{
+                  "Type":"Image",
+                  "MediaId": "35166290f09b71eda7baf7e7d6786301",
+                  "Duration":5
+              }
+              ]
+          }
+      ]
+  },null,4);
+ }
 
 export function parseTimeline(timeline,options ){
   return  window.AliyunTimelinePlayer.parseTimeline(timeline,options);
