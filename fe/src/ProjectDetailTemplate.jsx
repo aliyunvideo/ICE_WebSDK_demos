@@ -52,8 +52,7 @@ function ProjectDetail() {
          const commonItems = transVoiceGroups(get(res, 'data.VoiceGroups', []));
          const customItems = [
           {
-            type: '基础',
-            category: '专属人声',
+            type: '专属人声',
             emptyContent: {
               description: '暂无人声 可通过',
               link: '',
@@ -114,65 +113,6 @@ function ProjectDetail() {
               };
             },
           },
-          {
-            type: '大众',
-            category: '专属人声',
-            emptyContent: {
-              description: '暂无人声 可通过',
-              link: '',
-              linkText: '创建专属人声',
-            },
-            getVoiceList: async (page, pageSize) => {
-              const custRes = await requestGet('ListCustomizedVoices',{ PageNo: page, PageSize: pageSize, Type: 'Standard', });
-              const items = get(custRes, 'data.Data.CustomizedVoiceList');
-              const total = get(custRes, 'data.Data.Total');
-
-              return {
-                items: items.map((it) => {
-                  return {
-                    desc: it.VoiceDesc,
-                    voiceType: it.Gender === 'male' ? 'Male' : 'Female',
-                    voiceUrl: it.VoiceUrl || '',
-                    tag: it.VoiceDesc,
-                    voice: it.VoiceId,
-                    name: it.VoiceName || it.VoiceId,
-                    remark: it.Scenario,
-                    demoMediaId: it.DemoAudioMediaId,
-                    custom: true,
-                  };
-                }),
-                total,
-              };
-            },
-            getVoice: async (voiceId) => {
-              const custRes = await requestGet('GetCustomizedVoice',{ VoiceId: voiceId });
-              const item = get(custRes, 'data.Data.CustomizedVoice');
-              const kv = {
-                story: '故事',
-                interaction: '交互',
-                navigation: '导航',
-              };
-
-              return {
-                desc: item.VoiceDesc || kv[item.Scenario] || item.Scenario,
-                voiceType: item.Gender === 'male' ? 'Male' : 'Female',
-                voiceUrl: item.VoiceUrl || '',
-                tag: item.VoiceDesc || item.Scenario,
-                voice: item.VoiceId,
-                name: item.VoiceName || item.VoiceId,
-                remark: item.Scenario,
-                demoMediaId: item.DemoAudioMediaId,
-                custom: true,
-              };
-            },
-            getDemo: async (mediaId) => {
-              const mediaInfo = await requestGet('GetMediaInfo',{ MediaId: mediaId });
-              const src = get(mediaInfo, 'data.MediaInfo.FileInfoList[0].FileBasicInfo.FileUrl');
-              return {
-                src: src,
-              };
-            },
-          },
         ].concat(commonItems);
          setCustomVoiceGroups(customItems);
       })
@@ -185,9 +125,8 @@ function ProjectDetail() {
     }
 
     window.AliyunVideoEditor.init({
-      browser32:true,
       // 模板模式 参考模板模式接入相关文档：https://help.aliyun.com/document_detail/453481.html?spm=a2c4g.453478.0.0.610148d1ikCUxq
-      // mode: 'template',
+      mode: 'template',
       // 默认字幕文案
       defaultSubtitleText: '默认文案',
       // 自定义画布比例
@@ -196,9 +135,9 @@ function ProjectDetail() {
       customAspectRatioList: ['1:1', '2:1', '4:3', '3:4', '9:16', '16:9', '21:9', '16:10'],
       // 自定义按钮文案
       customTexts: {
-         importButton: '自定义导入',
-         updateButton: '自定义保存',
-          produceButton: '自定义生成',
+        // importButton: '自定义导入',
+        // updateButton: '自定义保存',
+        // produceButton: '自定义生成',
         // logoUrl: 'https://www.example.com/assets/example-logo-url.png' 自定义logo
       },
       // 自定义人声
@@ -217,6 +156,9 @@ function ProjectDetail() {
       // 媒资库默认情况下播放地址会过期，所以需要动态获取
       useDynamicSrc: true,
       getDynamicSrc: (mediaId, mediaType) => {
+        if(mediaType === 'video'){
+          return 'https://ice-pub-media.myalicdn.com/vod-demo/xdf.mp4';
+        }
         return request('GetMediaInfo', { // https://help.aliyun.com/document_detail/197842.html
           MediaId: mediaId
         }).then((res) => {
@@ -240,32 +182,63 @@ function ProjectDetail() {
             maskUrl = get(maskFile, 'FileBasicInfo.FileUrl');
           }
           mediaUrl = get(sourceFile, 'FileBasicInfo.FileUrl');
-          const codec = get(sourceFile, 'VideoStreamInfoList[0].CodecName');
-
+          if (!maskUrl) {
+            return mediaUrl;
+          }
           return {
             url: mediaUrl,
-            codec,
             maskUrl
           }
         })
       },
-      // exportTemplate: async ({ coverUrl, duration, timeline })=>{
-      //   await request('UpdateEditingProject', { // https://help.aliyun.com/document_detail/197835.html
-      //     ProjectId: projectId,
-      //     CoverURL: coverUrl,
-      //     Duration: duration,
-      //     Timeline: JSON.stringify(timeline)
-      //   });
-      //   console.log('export template >>>',coverUrl,duration,timeline);
-      // },
       // 获取剪辑工程关联素材
-      getEditingProjectMaterials: () => {
-        return request('GetEditingProjectMaterials', { // https://help.aliyun.com/document_detail/209068.html
-          ProjectId: projectId
-        }).then((res) => {
-          const data = res.data.MediaInfos
-          return transMediaList(data) // 需要做一些数据变换
-        })
+      getEditingProjectMaterials:  async () => {
+        // return request('GetEditingProjectMaterials', { // https://help.aliyun.com/document_detail/209068.html
+        //   ProjectId: projectId
+        // }).then((res) => {
+        //   const data = res.data.MediaInfos
+        //   return transMediaList(data) // 需要做一些数据变换
+        // })
+      const result =   {
+          "image": [
+              "45453930801071ed9721f6f7f6786301",
+              "cd317910931271ee8a92f6f7d6496301",
+              "cd371e60931271ee8a92f6f7d6496301",
+              "d951fd608ff671eebfa7e7f7c7486301",
+              "8d350d30931371ee8a9ef6f7d6496301",
+              "e2572e10931371ee8aa6f6f7d6496301",
+              "b0592e408ff871eebfbae7f7c7486301"
+          ],
+          "audio": [],
+          "video": [
+              "994cddb0931271ee8a68e7f7c7486302"
+          ]
+        }
+        const list = [];
+        result.image.forEach((item)=>{
+          list.push({
+             mediaId: item,
+             mediaType:'image',
+             image:{
+              title: item,
+              coverUrl: 'https://ice-pub-media.myalicdn.com/vod-demo/%E4%BA%AC%E5%89%A7.png',
+              width: 800,
+              height: 800,
+             }
+          });
+        });
+        result.video.forEach((item)=>{
+          list.push({
+             mediaId: item,
+             mediaType:'video',
+             video:{
+              title: item,
+              coverUrl: 'https://ice-pub-media.myalicdn.com/vod-demo/%E4%BA%AC%E5%89%A7.png',
+              src:'https://ice-pub-media.myalicdn.com/vod-demo/xdf.mp4'
+             }
+          });
+        });
+        return list;
       },
       // 资源库导入素材
       searchMedia: (mediaType) => { // mediaType 为用户当前所在的素材 tab，可能为 video | audio | image，您可以根据这个参数对应地展示同类型的可添加素材
@@ -319,16 +292,643 @@ function ProjectDetail() {
         }
       },
       getEditingProject: async () => {
-        const res = await request('GetEditingProject', { // https://help.aliyun.com/document_detail/197837.html
-          ProjectId: projectId
-        })
+        // const res = await request('GetEditingProject', { // https://help.aliyun.com/document_detail/197837.html
+        //   ProjectId: projectId
+        // })
 
-        const timelineString = res.data.Project.Timeline
+        // const timelineString = res.data.Project.Timeline
+
+        // return {
+        //   projectId,
+        //   timeline: timelineString ? JSON.parse(timelineString) : undefined,
+        //   modifiedTime: res.data.Project.ModifiedTime
+        // }
 
         return {
           projectId,
-          timeline: timelineString ? JSON.parse(timelineString) : undefined,
-          modifiedTime: res.data.Project.ModifiedTime
+          timeline: {
+            "AspectRatio": "9:16",
+            "OutputMediaConfig": {
+                "Height": 1920,
+                "Bitrate": 3000,
+                "Width": 1080
+            },
+            "Version": 1,
+            "VideoTracks": [
+                {
+                    "VideoTrackClips": [
+                        {
+                            "TimelineIn": 0,
+                            "TimelineOut": 2.913,
+                            "In": 0,
+                            "Src": "",
+                            "VirginDuration": 12.609,
+                            "Title": "12.5欢喜神仙亚克力.mp4",
+                            "TemplateReplaceable": true,
+                            "Duration": 2.913,
+                            "Effects": [
+                                {
+                                    "Type": "Volume",
+                                    "Gain": 0
+                                },
+                                {
+                                    "Type": "DurationAdaptation",
+                                    "MaterialShorterThanInterval": "FillLastFrame"
+                                }
+                            ],
+                            "AsrLoading": false,
+                            "Out": 2.913,
+                            "TemplateMaterialId": "4387fe",
+                            "Type": "Video",
+                            "MediaId": "$4387fe:994cddb0931271ee8a68e7f7c7486302",
+                            "X": 0,
+                            "Y": 0,
+                            "Height": 1,
+                            "TemplateRemark": "",
+                            "Id": 21,
+                            "IsFromTemplate": true,
+                            "Width": 1,
+                            "AdaptMode": "Contain",
+                            "TrackId": 0
+                        },
+                        {
+                            "TimelineIn": 2.913,
+                            "TimelineOut": 6.553,
+                            "In": 2.913,
+                            "Src": "",
+                            "VirginDuration": 12.609,
+                            "Title": "12.5欢喜神仙亚克力.mp4",
+                            "TemplateReplaceable": true,
+                            "Duration": 3.64,
+                            "Effects": [
+                                {
+                                    "Type": "Volume",
+                                    "Gain": 0
+                                },
+                                {
+                                    "Type": "DurationAdaptation",
+                                    "MaterialShorterThanInterval": "FillLastFrame"
+                                }
+                            ],
+                            "AsrLoading": false,
+                            "Out": 6.553,
+                            "TemplateMaterialId": "472d65",
+                            "Type": "Video",
+                            "MediaId": "$472d65:994cddb0931271ee8a68e7f7c7486302",
+                            "X": 0,
+                            "Y": 0,
+                            "Height": 1,
+                            "TemplateRemark": "",
+                            "Id": 23,
+                            "IsFromTemplate": true,
+                            "Width": 1,
+                            "AdaptMode": "Contain",
+                            "TrackId": 0
+                        },
+                        {
+                            "TimelineIn": 6.553,
+                            "TimelineOut": 8.806,
+                            "In": 6.553,
+                            "Src": "",
+                            "VirginDuration": 12.609,
+                            "Title": "12.5欢喜神仙亚克力.mp4",
+                            "TemplateReplaceable": true,
+                            "Duration": 2.253,
+                            "Effects": [
+                                {
+                                    "Type": "Volume",
+                                    "Gain": 0
+                                },
+                                {
+                                    "Type": "DurationAdaptation",
+                                    "MaterialShorterThanInterval": "FillLastFrame"
+                                }
+                            ],
+                            "AsrLoading": false,
+                            "Out": 8.806,
+                            "TemplateMaterialId": "55aaee",
+                            "Type": "Video",
+                            "MediaId": "$55aaee:994cddb0931271ee8a68e7f7c7486302",
+                            "X": 0,
+                            "Y": 0,
+                            "Height": 1,
+                            "TemplateRemark": "",
+                            "Id": 25,
+                            "IsFromTemplate": true,
+                            "Width": 1,
+                            "AdaptMode": "Contain",
+                            "TrackId": 0
+                        },
+                        {
+                            "TimelineIn": 8.806,
+                            "TimelineOut": 10.699,
+                            "In": 8.806,
+                            "Src": "",
+                            "VirginDuration": 12.609,
+                            "Title": "12.5欢喜神仙亚克力.mp4",
+                            "TemplateReplaceable": true,
+                            "Duration": 1.893,
+                            "Effects": [
+                                {
+                                    "Type": "Volume",
+                                    "Gain": 0
+                                },
+                                {
+                                    "Type": "DurationAdaptation",
+                                    "MaterialShorterThanInterval": "FillLastFrame"
+                                }
+                            ],
+                            "AsrLoading": false,
+                            "Out": 10.699,
+                            "TemplateMaterialId": "fed963",
+                            "Type": "Video",
+                            "MediaId": "$fed963:994cddb0931271ee8a68e7f7c7486302",
+                            "X": 0,
+                            "Y": 0,
+                            "Height": 1,
+                            "TemplateRemark": "",
+                            "Id": 27,
+                            "IsFromTemplate": true,
+                            "Width": 1,
+                            "AdaptMode": "Contain",
+                            "TrackId": 0
+                        },
+                        {
+                            "TimelineIn": 10.699,
+                            "TimelineOut": 12.609,
+                            "In": 10.699,
+                            "Src": "",
+                            "VirginDuration": 12.609,
+                            "Title": "12.5欢喜神仙亚克力.mp4",
+                            "TemplateReplaceable": true,
+                            "Duration": 1.91,
+                            "Effects": [
+                                {
+                                    "Type": "Volume",
+                                    "Gain": 0
+                                },
+                                {
+                                    "Type": "DurationAdaptation",
+                                    "MaterialShorterThanInterval": "FillLastFrame"
+                                }
+                            ],
+                            "AsrLoading": false,
+                            "Out": 12.609,
+                            "TemplateMaterialId": "a59416",
+                            "Type": "Video",
+                            "MediaId": "$a59416:994cddb0931271ee8a68e7f7c7486302",
+                            "X": 0,
+                            "Y": 0,
+                            "Height": 1,
+                            "TemplateRemark": "",
+                            "Id": 28,
+                            "IsFromTemplate": true,
+                            "Width": 1,
+                            "AdaptMode": "Contain",
+                            "TrackId": 0
+                        }
+                    ],
+                    "Type": "Video",
+                    "Visible": true,
+                    "Id": 0,
+                    "Count": 5
+                },
+                {
+                    "VideoTrackClips": [
+                        {
+                            "TimelineIn": 0,
+                            "TimelineOut": 12.609,
+                            "Src": "",
+                            "Title": "背景.jpg",
+                            "TemplateReplaceable": false,
+                            "Duration": 12.609,
+                            "TemplateMaterialId": "",
+                            "Type": "Image",
+                            "MediaId": "8d350d30931371ee8a9ef6f7d6496301",
+                            "X": 0,
+                            "Y": -0.044,
+                            "Height": 0.282,
+                            "TemplateRemark": "",
+                            "Id": 14,
+                            "IsFromTemplate": true,
+                            "Width": 1.003,
+                            "TrackId": 1
+                        }
+                    ],
+                    "Type": "Video",
+                    "Visible": true,
+                    "Id": 1,
+                    "Count": 1,
+                    "Disabled": false
+                },
+                {
+                    "VideoTrackClips": [
+                        {
+                            "TimelineIn": 0,
+                            "TimelineOut": 12.609,
+                            "Src": "",
+                            "Title": "标题框 (5).png",
+                            "TemplateReplaceable": false,
+                            "Duration": 12.609,
+                            "TemplateMaterialId": "",
+                            "Type": "Image",
+                            "MediaId": "b0592e408ff871eebfbae7f7c7486301",
+                            "X": 0.073,
+                            "Y": -0.064,
+                            "Height": 0.478,
+                            "TemplateRemark": "",
+                            "Id": 16,
+                            "IsFromTemplate": true,
+                            "Width": 0.849,
+                            "TrackId": 4
+                        }
+                    ],
+                    "Type": "Video",
+                    "Visible": true,
+                    "Id": 4,
+                    "Count": 1,
+                    "Disabled": false
+                },
+                {
+                    "VideoTrackClips": [
+                        {
+                            "TimelineIn": 0,
+                            "TimelineOut": 12.609,
+                            "Src": "",
+                            "Title": "背景.jpg",
+                            "TemplateReplaceable": false,
+                            "Duration": 12.609,
+                            "TemplateMaterialId": "",
+                            "Type": "Image",
+                            "MediaId": "8d350d30931371ee8a9ef6f7d6496301",
+                            "X": -0.001,
+                            "Y": 0.78,
+                            "_x": "middle",
+                            "Height": 0.282,
+                            "TemplateRemark": "",
+                            "Id": 17,
+                            "IsFromTemplate": true,
+                            "Opacity": 1,
+                            "Width": 1.002,
+                            "TrackId": 5
+                        }
+                    ],
+                    "Type": "Video",
+                    "Visible": true,
+                    "Id": 5,
+                    "Count": 1,
+                    "Disabled": false
+                },
+                {
+                    "VideoTrackClips": [
+                        {
+                            "TimelineIn": 0,
+                            "TimelineOut": 0.507,
+                            "OutlineColour": "#ffffff",
+                            "Shadow": 1,
+                            "BackOpacity": 1,
+                            "Font": "AlimamaFangYuanTi",
+                            "SizeRequestType": "Nominal",
+                            "TemplateMaterialId": "",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.789,
+                            "Height": 0.044,
+                            "TemplateRemark": "",
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "BackColour": "#000000",
+                            "BorderStyle": 1,
+                            "Color": "#000000",
+                            "TemplateReplaceable": false,
+                            "Duration": 0.507,
+                            "Spacing": 0,
+                            "Outline": 1,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": true
+                            },
+                            "FontSize": 15,
+                            "Content": "哇趣！",
+                            "EffectColorStyle": "cooffee",
+                            "_x": "middle",
+                            "Id": 4,
+                            "IsFromTemplate": true,
+                            "TrackId": 3
+                        },
+                        {
+                            "TimelineIn": 0.507,
+                            "TimelineOut": 2.913,
+                            "OutlineColour": "#ffffff",
+                            "Shadow": 1,
+                            "BackOpacity": 1,
+                            "Font": "AlimamaFangYuanTi",
+                            "SizeRequestType": "Nominal",
+                            "TemplateMaterialId": "",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.789,
+                            "Height": 0.044,
+                            "TemplateRemark": "",
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "BackColour": "#000000",
+                            "BorderStyle": 1,
+                            "Color": "#000000",
+                            "TemplateReplaceable": false,
+                            "Duration": 2.406,
+                            "Spacing": 0,
+                            "Outline": 1,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": true
+                            },
+                            "FontSize": 15,
+                            "Content": "这个小摆件不就是我的工位搭子吗",
+                            "EffectColorStyle": "cooffee",
+                            "_x": "middle",
+                            "Id": 5,
+                            "IsFromTemplate": true,
+                            "TrackId": 3
+                        },
+                        {
+                            "TimelineIn": 2.913,
+                            "TimelineOut": 5.588,
+                            "OutlineColour": "#ffffff",
+                            "Shadow": 1,
+                            "BackOpacity": 1,
+                            "Font": "AlimamaFangYuanTi",
+                            "SizeRequestType": "Nominal",
+                            "TemplateMaterialId": "",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.789,
+                            "Height": 0.044,
+                            "TemplateRemark": "",
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "BackColour": "#000000",
+                            "BorderStyle": 1,
+                            "Color": "#000000",
+                            "TemplateReplaceable": false,
+                            "Duration": 2.675,
+                            "Spacing": 0,
+                            "Outline": 1,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": true
+                            },
+                            "FontSize": 15,
+                            "Content": "每天随机抽取一位神仙出来供着",
+                            "EffectColorStyle": "cooffee",
+                            "_x": "middle",
+                            "Id": 6,
+                            "IsFromTemplate": true,
+                            "TrackId": 3
+                        },
+                        {
+                            "TimelineIn": 5.588,
+                            "TimelineOut": 6.553,
+                            "OutlineColour": "#ffffff",
+                            "Shadow": 1,
+                            "BackOpacity": 1,
+                            "Font": "AlimamaFangYuanTi",
+                            "SizeRequestType": "Nominal",
+                            "TemplateMaterialId": "",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.789,
+                            "Height": 0.042,
+                            "TemplateRemark": "",
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "BackColour": "#000000",
+                            "BorderStyle": 1,
+                            "Color": "#000000",
+                            "TemplateReplaceable": false,
+                            "Duration": 0.965,
+                            "Spacing": 0,
+                            "Outline": 1,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": true
+                            },
+                            "FontSize": 15,
+                            "Content": "缺啥补啥",
+                            "EffectColorStyle": "cooffee",
+                            "_x": "middle",
+                            "Id": 7,
+                            "IsFromTemplate": true,
+                            "TrackId": 3
+                        },
+                        {
+                            "TimelineIn": 6.553,
+                            "TimelineOut": 8.788,
+                            "OutlineColour": "#ffffff",
+                            "Shadow": 1,
+                            "BackOpacity": 1,
+                            "Font": "AlimamaFangYuanTi",
+                            "SizeRequestType": "Nominal",
+                            "TemplateMaterialId": "",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.789,
+                            "Height": 0.044,
+                            "TemplateRemark": "",
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "BackColour": "#000000",
+                            "BorderStyle": 1,
+                            "Color": "#000000",
+                            "TemplateReplaceable": false,
+                            "Duration": 2.235,
+                            "Spacing": 0,
+                            "Outline": 1,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": true
+                            },
+                            "FontSize": 15,
+                            "Content": "想给自己叠多少层buff都可以",
+                            "EffectColorStyle": "cooffee",
+                            "_x": "middle",
+                            "Id": 8,
+                            "IsFromTemplate": true,
+                            "TrackId": 3
+                        },
+                        {
+                            "TimelineIn": 8.788,
+                            "TimelineOut": 10.699,
+                            "OutlineColour": "#ffffff",
+                            "Shadow": 1,
+                            "BackOpacity": 1,
+                            "Font": "AlimamaFangYuanTi",
+                            "TemplateMaterialId": "",
+                            "SizeRequestType": "Nominal",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.789,
+                            "Height": 0.042,
+                            "TemplateRemark": "",
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "BackColour": "#000000",
+                            "BorderStyle": 1,
+                            "Color": "#000000",
+                            "TemplateReplaceable": false,
+                            "Duration": 1.911,
+                            "Spacing": 0,
+                            "Outline": 1,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": true
+                            },
+                            "FontSize": 15,
+                            "Content": "看在我如此虔诚的份上",
+                            "EffectColorStyle": "cooffee",
+                            "_x": "middle",
+                            "Id": 9,
+                            "IsFromTemplate": true,
+                            "TrackId": 3
+                        },
+                        {
+                            "TimelineIn": 10.699,
+                            "TimelineOut": 12.634,
+                            "OutlineColour": "#ffffff",
+                            "Shadow": 1,
+                            "BackOpacity": 1,
+                            "Font": "AlimamaFangYuanTi",
+                            "SizeRequestType": "Nominal",
+                            "TemplateMaterialId": "",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.789,
+                            "Height": 0.042,
+                            "TemplateRemark": "",
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "BackColour": "#000000",
+                            "BorderStyle": 1,
+                            "Color": "#000000",
+                            "TemplateReplaceable": false,
+                            "Duration": 1.935,
+                            "Spacing": 0,
+                            "Outline": 1,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": true
+                            },
+                            "FontSize": 15,
+                            "Content": "求求神仙们多多偏爱我",
+                            "EffectColorStyle": "cooffee",
+                            "_x": "middle",
+                            "Id": 11,
+                            "IsFromTemplate": true,
+                            "TrackId": 3
+                        }
+                    ],
+                    "Type": "Subtitle",
+                    "Visible": true,
+                    "Id": 3,
+                    "Count": 7
+                },
+                {
+                    "VideoTrackClips": [
+                        {
+                            "TimelineIn": 0,
+                            "FontColorOpacity": 1,
+                            "TimelineOut": 12.634,
+                            "OutlineColour": "#000000",
+                            "Font": "AlimamaFangYuanTi",
+                            "TemplateMaterialId": "",
+                            "SizeRequestType": "Nominal",
+                            "OutlineOpacity": 1,
+                            "Alignment": "Center",
+                            "X": 0.5,
+                            "Y": 0.14,
+                            "TemplateRemark": "",
+                            "Height": 0.064,
+                            "FontUrl": "https://oss-dbos-pro-new.oss-cn-shanghai.aliyuncs.com/%E5%AD%97%E4%BD%93/AlimamaFangYuanTiVF-Thin.ttf",
+                            "Color": "#ffffff",
+                            "FontColor": "#ffffff",
+                            "TemplateReplaceable": false,
+                            "Duration": 12.634,
+                            "Spacing": 0,
+                            "Outline": 2,
+                            "Type": "Text",
+                            "FontFace": {
+                                "Italic": false,
+                                "Underline": false,
+                                "Bold": false
+                            },
+                            "Angle": 0,
+                            "FontSize": 27,
+                            "Content": "神仙工位搭子",
+                            "_x": "middle",
+                            "Id": 18,
+                            "IsFromTemplate": true,
+                            "TrackId": 6
+                        }
+                    ],
+                    "Type": "Subtitle",
+                    "Visible": true,
+                    "Id": 6,
+                    "Count": 1,
+                    "Disabled": false
+                }
+            ],
+            "SdkVersion": "4.11.6",
+            "FECanvas": {
+                "Height": 450,
+                "Width": 253.125
+            },
+            "AudioTracks": [
+                {
+                    "AudioTrackClips": [
+                        {
+                            "TimelineIn": 0,
+                            "TimelineOut": 12.609,
+                            "In": 0,
+                            "VirginDuration": 12.609,
+                            "Src": "",
+                            "Title": "12.5欢喜神仙亚克力.mp4",
+                            "TemplateReplaceable": false,
+                            "Duration": 12.609,
+                            "_videoIn": 0,
+                            "Out": 12.609,
+                            "TemplateMaterialId": "",
+                            "Type": "Audio",
+                            "MediaId": "994cddb0931271ee8a68e7f7c7486302",
+                            "_videoOut": 12.609,
+                            "TemplateRemark": "",
+                            "Id": 3,
+                            "IsFromTemplate": true,
+                            "TrackId": 2
+                        }
+                    ],
+                    "Type": "Audio",
+                    "Visible": true,
+                    "Id": 2,
+                    "Count": 1,
+                    "Disabled": false
+                }
+            ],
+            "From": "websdk"
+        }
         }
       },
       updateEditingProject: ({coverUrl, duration, timeline, isAuto}) => {
@@ -385,6 +985,9 @@ function ProjectDetail() {
         } else {
           message.error('导出失败');
         }
+      },
+      updateTemplate: async ({timeline})=>{
+         console.log('updateTemplate',timeline);
       },
       // 各片段独立导出
       exportVideoClipsSplit: async (data) => {
