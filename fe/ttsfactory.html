@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+  <script src="http://gosspublic.alicdn.com/aliyun-oss-sdk-6.19.0.min.js"></script>
+  <script src="https://g.alicdn.com/video-cloud-fe/tts-factory/0.0.2/index.js"></script>
+
+  <title>ALI TTS DEMO</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script>
+    async function request(action, params) {
+      const res = await fetch('/openApiPost', {
+        method: 'POST', body: JSON.stringify({...params, Action: action}), headers: {
+          'Content-Type': 'application/json; charset=utf-8'
+        }
+      })
+      const data = await res.json();
+      return {data};
+    }
+
+    async function requestGet(action, params) {
+      const searchParams = new URLSearchParams();
+      searchParams.set('Action', action);
+      Object.keys(params).forEach((key) => {
+        searchParams.set(key, params[key]);
+      });
+      const res = await fetch(`/openApi?${ searchParams.toString() }`, {method: 'GET'})
+      const data = await res.json();
+      return {data};
+    }
+
+    const refreshSts = async () => {
+      // 创建上传到oss的sts，参考文档 https://help.aliyun.com/zh/oss/developer-reference/authorize-access-6?spm=a2c4g.11186623.0.i6#section-iy3-bfe-7mn
+      const res = await fetch("/createSTS", {method: 'POST'});
+      const data = await res.json();
+      return data.data;
+    }
+
+    const uploadFile = async (fileName,file) => {
+      // 上传oss 参考文档 https://help.aliyun.com/zh/oss/developer-reference/simple-upload-8?spm=a2c4g.11186623.0.0.27d22dc50M8glG
+      const sts = await refreshSts();
+      const client = new OSS({
+        // yourRegion填写Bucket所在地域。以华东1（杭州）为例，yourRegion填写为oss-cn-hangzhou。
+        region: `oss-${ sts.region }`,
+        accessKeyId: sts.accessKeyId,
+        accessKeySecret: sts.accessKeySecret,
+        stsToken: sts.securityToken,
+        // 填写Bucket名称。
+        bucket: sts.bucket,
+        // 刷新临时访问凭证。
+        refreshSTSToken: async () => {
+          const refreshToken = await refreshSts();
+          return {
+            accessKeyId: refreshToken.accessKeyId,
+            accessKeySecret: refreshToken.accessKeySecret,
+            stsToken: refreshToken.securityToken,
+          };
+        },
+      });
+
+      const result = await client.multipartUpload(fileName, file, {
+        progress: (p, _cpt, res) => {
+          console.log('res', res);
+        },
+        parallel: 2,
+        partsize: 1024 * 512,
+      });
+
+      const url = new URL(result.res.requestUrls[0]);
+      return {url: `${ url.origin }${ url.pathname }`}
+
+    }
+
+    const get = _.get;
+    const container = document.getElementById('app');
+    const ttsFactory = window.AliyunTTSFactory.init({
+      container: container,
+      api: {
+        createVoiceId: async (params) => {
+          const res = await request('CreateCustomizedVoiceJob', {
+            VoiceName: params.voiceName,
+            VoiceId: params.voiceId,
+            Gender: params.gender,
+            Scenario: params.scenario,
+          });
+
+          return {
+            success: get(res, 'data.Success', false),
+            data: {
+              voiceId: get(res, 'data.Data.VoiceId', ''),
+            },
+          };
+        },
+        getRecorderList: async (params) => {
+          const res = await requestGet('GetDemonstrationForCustomizedVoiceJob', {
+            Scenario: params.scenario,
+          });
+
+          return {
+            success: get(res, 'data.Success', false),
+            data: get(res, 'data.Data.DemonstrationList', []).map((item) => {
+              return {
+                audioId: item.AudioId,
+                audioUrl: item.DemoAudio,
+                text: item.Text,
+              };
+            }),
+          };
+        },
+        uploadRecord: async (params) => {
+          const fileName = `${params.voiceId}-${
+                params.index
+              }-${Date.now()}.wav`;
+          const result = await uploadFile(fileName,params.file);
+          console.log('uploadRecord', params,fileName,result);
+          return { success: true, data: { fileUrl: result.url } }
+        },
+        validRecord: async (params) => {
+          const res = await request('DetectAudioForCustomizedVoiceJob', {
+            VoiceId: params.voiceId,
+            RecordUrl: params.uploadData.fileUrl,
+            AudioRecordId: params.index + 1,
+          });
+
+          return {
+            success:  get(res, 'data.Success', false),
+              data: {
+                pass:  get(res, 'data.Data.Pass', false),
+                reason: get(res, 'data.Data.Reason', ''),
+              },
+          };
+        },
+        submitRecord: async (params) => {
+          const res = await request('SubmitCustomizedVoiceJob', {
+            VoiceId: params.voiceId,
+            // DemoAudioMediaURL: '', 人声克隆输出demo音频的地址
+          });
+          return {
+            success: get(res, 'data.Success', false),
+          };
+        },
+        getCopywriting:  (config)=>{
+          // 文案修改实例
+          console.log('>>config', config);
+          config.views.Tutorial.startBtn = '开始'
+          return config;
+        }
+      },
+    });
+  </script>
+</body>
+
+</html>
