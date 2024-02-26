@@ -323,11 +323,13 @@ function ProjectDetail() {
           ProjectId: projectId
         })
 
-        const timelineString = res.data.Project.Timeline
+        const timelineString = res.data.Project.Timeline;
+        const timeline = timelineString ? JSON.parse(timelineString): undefined;
 
         return {
           projectId,
-          timeline: timelineString ? JSON.parse(timelineString) : undefined,
+          timeline: timeline,
+          title:res.data.Project.Title,
           modifiedTime: res.data.Project.ModifiedTime
         }
       },
