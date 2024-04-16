@@ -1,6 +1,6 @@
-import {useEffect} from 'react';
-import {createProjectPlayer, parseTimeline} from "../playerUtil";
-
+import {useEffect, useRef,useState} from 'react';
+import {createProjectPlayer, parseTimeline,customSimpleTimeline,customFontTimeline} from "../playerUtil";
+import {Input,Button} from "antd";
 
 export default function CustomTimeline() {
 

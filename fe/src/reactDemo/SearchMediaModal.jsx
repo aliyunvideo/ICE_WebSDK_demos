@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Modal, Pagination, Radio } from 'antd'
-import { request, transMediaList } from './utils'
+import { request, transMediaList } from '../utils'
 import MediaItem from './MediaItem'
 
 const options = [

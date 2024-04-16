@@ -1,6 +1,6 @@
 import {Modal} from "antd";
 import { useCallback, useEffect, useState } from "react";
-import createPreviewPlayer from "./PreviewPlayer"
+import createPreviewPlayer from "../PreviewPlayer"
 
 export default function ProjectPlayerModel({open,onClose,getTimeline}){
 

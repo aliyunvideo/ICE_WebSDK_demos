@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Button, Card, Form, Input, Modal, List, Pagination} from 'antd'
-import {request} from './utils'
+import {request} from '../utils'
 
 const layout = {
   labelCol: {span: 4},

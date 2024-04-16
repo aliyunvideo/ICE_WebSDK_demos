@@ -1,4 +1,4 @@
-import { formatTime } from './utils'
+import { formatTime } from '../utils'
 
 function MediaItem (props) {
   const { item, onClick, selected } = props

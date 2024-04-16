@@ -3,7 +3,7 @@ import {useParams} from 'react-router'
 import { message} from 'antd'
 import {get,lowerFirst} from 'lodash'
 import SearchMediaModal from './SearchMediaModal'
-import {request, requestGet, transMediaList, poll} from './utils'
+import {request, requestGet, transMediaList, poll} from '../utils'
 import ProduceVideoModal from './ProduceVideoModal'
 
 
