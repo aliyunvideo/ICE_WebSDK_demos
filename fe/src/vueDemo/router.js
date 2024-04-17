@@ -4,9 +4,10 @@ import { createRouter, createWebHashHistory } from "vue-router";
 
 import List from "./ProjectList.vue";
 import Detil from "./ProjectDetail.vue";
+import Player from "./Player.vue";
 
 // 路由信息
-let routes = [
+const routes = [
   {
     path: "/",
     name: 'home',
@@ -22,6 +23,11 @@ let routes = [
     path: "/detail/:projectId",
     name: 'detail',
     component: Detil,
+  },
+  {
+    path: "/player/:projectId",
+    name: 'player',
+    component: Player,
   },
 ];
 

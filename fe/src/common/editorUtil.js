@@ -195,13 +195,11 @@ export function craeteCustomFontList(customFontList = []) {
 export function createEditor({
   container,
   locale,
+  mode = undefined,
   projectId,
   onSearchMedia,
-  onUpdateEditingProject,
   onProduceEditingProjectVideo,
-  onExportVideoClipsMerge,
-  onExportVideoClipsSplit,
-  onExportFromMediaMarks,
+  message
 }) {
 
   const init = async () => {
@@ -217,7 +215,7 @@ export function createEditor({
 
     window.AliyunVideoEditor.init({
       // 模板模式 参考模板模式接入相关文档：https://help.aliyun.com/document_detail/453481.html?spm=a2c4g.453478.0.0.610148d1ikCUxq
-      // mode: 'template',
+       mode: mode,
       // 默认字幕文案
       defaultSubtitleText: "默认文案",
 
@@ -377,8 +375,8 @@ export function createEditor({
           Timeline: JSON.stringify(timeline),
         }).then(() => {
           // WebSDK 本身会进行自动保存，isAuto 则是告诉调用方这次保存是否自动保存，调用方可以控制只在手动保存时才展示保存成功的提示
-          // !isAuto && message.success('保存成功')
-          onUpdateEditingProject(isAuto);
+          !isAuto && message.success('保存成功')
+
         });
       },
       produceEditingProjectVideo: onProduceEditingProjectVideo,
@@ -411,7 +409,12 @@ export function createEditor({
         };
         //业务方自定义请求提交合成的API
         const res = await request("SubmitMediaProducingJob", reqParam);
-        onExportVideoClipsMerge && onExportVideoClipsMerge(res.status === 200);
+        const success = res.status === 200;
+        if (success) {
+          message.success('导出成功')
+        } else {
+          message.error('导出失败');
+        }
 
       },
       // 各片段独立导出
@@ -452,7 +455,12 @@ export function createEditor({
             success = success && res.status === 200;
           })
         );
-        onExportVideoClipsSplit && onExportVideoClipsSplit(success);
+
+        if (success) {
+          message.success('导出成功')
+        } else {
+          message.error('导出失败');
+        }
       },
       // 标记片段独立导出
       exportFromMediaMarks: async (data) => {
@@ -492,7 +500,11 @@ export function createEditor({
             success = success && res.status === 200;
           })
         );
-        onExportFromMediaMarks && onExportFromMediaMarks(success);
+        if (success) {
+          message.success('导出成功')
+        } else {
+          message.error('导出失败');
+        }
       },
       // 智能生成字幕
       submitASRJob: async (mediaId, startTime, duration) => {

@@ -18,6 +18,8 @@
           <router-link  :to="`detail/${item.ProjectId}`" > {{ item.Title }}</router-link>
          </template>
         </a-list-item-meta>
+        <a-button :style="{marginLeft: '10px'}" @click="router.push(`/detail/${ item.ProjectId }`)" >编辑</a-button>
+        <a-button :style="{marginLeft: '10px'}" @click="router.push(`/player/${ item.ProjectId }`)" >预览</a-button>
       </a-list-item>
     </template>
   </a-list>
@@ -39,6 +41,9 @@
 <script lang="ts" setup >
 import {request} from '../utils';
 import { onMounted ,reactive,ref, watch} from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const data = reactive({
   list:[],

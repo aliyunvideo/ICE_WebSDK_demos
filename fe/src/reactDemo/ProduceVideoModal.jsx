@@ -1,35 +1,21 @@
 import { Form, Input, Modal, Select } from 'antd'
-import { useState } from 'react'
-
-const supportedFormats = ['mp4', 'mov'] // ICE 支持导出的视频格式完整列表见：https://help.aliyun.com/document_detail/197846.html
-const resolutionMap = {
-  '16:9': [
-    { label: '640 x 360', width: 640, height: 360, bitrate: 400 },
-    { label: '960 x 540', width: 960, height: 540, bitrate: 900 },
-    { label: '1280 x 720', width: 1280, height: 720, bitrate: 1500 },
-    { label: '1920 x 1080', width: 1920, height: 1080, bitrate: 3000 },
-    { label: '2560 x 1440', width: 2560, height: 1440, bitrate: 6000 }
-  ],
-  '9:16': [
-    { label: '360 x 640', width: 360, height: 640, bitrate: 400 },
-    { label: '540 x 960', width: 540, height: 960, bitrate: 900 },
-    { label: '720 x 1280', width: 720, height: 1280, bitrate: 1500 },
-    { label: '1080 x 1920', width: 1080, height: 1920, bitrate: 3000 },
-    { label: '1440 x 2560', width: 1440, height: 2560, bitrate: 6000 }
-  ]
-}
+import { useCallback, useEffect, useState } from 'react'
+import { resolutionMap,supportedFormats ,OSS_BUCKET_LOCAL_STORAGE_KEY} from '../const';
+import {requestGet} from '../utils';
+import {get} from 'lodash';
 
 const layout = {
   labelCol: { span: 4 },
   wrapperCol: { span: 20 }
 }
 
-const OSS_BUCKET_LOCAL_STORAGE_KEY = 'oss-bucket-local-storage-key'
+
 
 function ProduceVideoModal (props) {
   const { onSubmit, onClose, aspectRatio, recommend } = props
   const [form] = Form.useForm()
   const [confirmLoading, setConfirmLoading] = useState(false)
+  const [storageList,setStorageList] = useState([]);
 
   let resolutions = resolutionMap[aspectRatio] || []
   if (recommend && recommend.width && recommend.height) {
@@ -64,6 +50,22 @@ function ProduceVideoModal (props) {
     })
   }
 
+  const fetchStorageList = useCallback(async ()=>{
+    const storageListReq = await requestGet("GetStorageList");
+    const list =  get(storageListReq,'data.StorageInfoList',[]);
+    setStorageList(list.map((item)=>{
+       return {
+         label: `${item.StorageLocation}`,
+         value: `${item.StorageType === 'vod_oss_bucket'?'vod':'http'}://${item.StorageLocation}`,
+       };
+    }));
+  },[]);
+
+  useEffect(()=>{
+    fetchStorageList();
+  },[fetchStorageList]);
+
+
   return (
     <Modal
       open
@@ -92,7 +94,13 @@ function ProduceVideoModal (props) {
         </Form.Item>
         <Form.Item name='ossBucket' label='存储地址' rules={[{ required: true }]}>
           {/** 一般不需要给用户填写，直接在代码里指定存储地址即可 */}
-          <Input placeholder='http://example-bucket.oss-cn-shanghai.aliyuncs.com/' />
+          {storageList.length===0?<Input placeholder='http://example-bucket.oss-cn-shanghai.aliyuncs.com/' />:
+          <Select>
+             {storageList.map((item)=>{
+              return   <Select.Option key={item.value} value={item.value} >{item.label}</Select.Option>
+             })}
+          </Select>
+        }
         </Form.Item>
         <Form.Item name='resolution' label='分辨率' rules={[{ required: true }]}>
           <Select onChange={handleResolutionChange}>

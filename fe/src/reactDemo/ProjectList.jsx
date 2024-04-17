@@ -69,7 +69,7 @@ function ProjectList() {
                   <Button style={{marginRight: '10px'}} >编辑</Button>
                 </Link>
                 <Button style={{marginLeft: '10px'}} onClick={() => {
-                  window.location.href = `/player.html#/projectTimeline/${ item.ProjectId }`
+                  window.location.href = `/player-react.html#/projectTimeline/${ item.ProjectId }`
                 }} >预览</Button>
               </div>
             </List.Item>
