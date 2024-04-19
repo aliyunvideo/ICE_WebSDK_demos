@@ -25,7 +25,7 @@ const routes = [
     component: Detil,
   },
   {
-    path: "/player/:projectId",
+    path: "/player/:projectId?",
     name: 'player',
     component: Player,
   },

@@ -1,13 +1,16 @@
 import {useEffect, useState} from 'react'
 import {Link} from 'react-router-dom'
-import {Button, Card, Form, Input, Modal, List, Pagination} from 'antd'
+import {Button, Form, Input, Modal, List, Pagination, Card} from 'antd'
 import {request} from '../utils'
+import {   useNavigate } from 'react-router-dom';
 
 const layout = {
   labelCol: {span: 4},
   wrapperCol: {span: 20}
 }
 const PageSize = 10;
+
+
 function ProjectList() {
   const [list, setList] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -16,8 +19,11 @@ function ProjectList() {
   const [total, setTotal] = useState(0)
   const [pageNo, setPageNo] = useState(1)
   const [form] = Form.useForm()
+  const [loading,setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    setLoading(true);
     request('SearchEditingProject', {
       TemplateType: 'None',
       PageSize: PageSize,
@@ -27,6 +33,8 @@ function ProjectList() {
         setList(res.data.ProjectList)
         setTotal(res.data.TotalCount)
       }
+    }).finally(()=>{
+       setLoading(false);
     })
   }, [version, pageNo])
 
@@ -41,66 +49,62 @@ function ProjectList() {
     })
   }
 
-  return (<div>
-
+  return (<div style={{margin: '16px'}} >
     <Card
-      extra={
-        <div>
-          <Button type='primary' onClick={() => setShowModal(true)}>创建工程</Button>
-          <Button style={{marginLeft: '10px'}} onClick={() => {
-            window.location.href = '/player.html'
-          }} >预览播放器</Button>
-        </div>
-      }
-      title='工程列表'
-      style={{width: '80%', margin: '50px auto'}}
-    >
-      <div>
+      title="工程列表"
+      extra={<div>
+        <Button type='primary' onClick={() => setShowModal(true)}>创建工程</Button>
+        <Button style={{marginLeft: '10px'}} onClick={() => {
+          window.location.href = '/player-react.html'
+        }} >预览播放器</Button>
+      </div>}
 
-        <List
-          dataSource={list}
-          renderItem={(item, index) => {
-            return <List.Item  >
-              <Link style={{display: 'block'}} to={`/detail/${ item.ProjectId }`}>
-                {index + 1}. {item.Title}
+    >
+
+      <List
+        dataSource={list}
+        renderItem={(item, index) => {
+          return <List.Item  >
+            <Link style={{display: 'block'}} to={`/home/detail/${ item.ProjectId }`}>
+              {index + 1}. {item.Title}
+            </Link>
+            <div>
+              <Link to={`/home/detail/${ item.ProjectId }`}   >
+                <Button style={{marginRight: '10px'}} >编辑</Button>
               </Link>
-              <div>
-                <Link to={`/detail/${ item.ProjectId }`} target='_blank' >
-                  <Button style={{marginRight: '10px'}} >编辑</Button>
-                </Link>
-                <Button style={{marginLeft: '10px'}} onClick={() => {
-                  window.location.href = `/player-react.html#/projectTimeline/${ item.ProjectId }`
-                }} >预览</Button>
-              </div>
-            </List.Item>
-          }}
-        />
-        <Pagination current={pageNo} total={total} pageSize={PageSize} pageSizeOptions={[10]} onChange={(n) => {
-          setPageNo(n);
-        }} />
-      </div>
-      {showModal && (
-        <Modal
-          open
-          title='创建剪辑工程'
-          okText='提交'
-          cancelText='取消'
-          onOk={() => form.submit()}
-          onCancel={() => setShowModal(false)}
-          confirmLoading={confirmLoading}
-        >
-          <Form
-            {...layout}
-            form={form}
-            onFinish={handleSubmit}
-          >
-            <Form.Item name='title' label='工程名称' rules={[{required: true}]}>
-              <Input />
-            </Form.Item>
-          </Form>
-        </Modal>
-      )}
+              <Button style={{marginLeft: '10px'}} onClick={() => {
+                window.location.href = `/player-react.html#/projectTimeline/${ item.ProjectId }`
+              }} >预览</Button>
+            </div>
+          </List.Item>
+        }}
+      />
+      <Pagination current={pageNo} total={total} pageSize={PageSize} pageSizeOptions={[10]} onChange={(n) => {
+        setPageNo(n);
+      }} />
     </Card>
+    {showModal && (
+      <Modal
+        open
+        title='创建剪辑工程'
+        okText='提交'
+        cancelText='取消'
+        onOk={() => form.submit()}
+        onCancel={() => setShowModal(false)}
+        confirmLoading={confirmLoading}
+      >
+        <Form
+          {...layout}
+          form={form}
+          onFinish={handleSubmit}
+        >
+          <Form.Item name='title' label='工程名称' rules={[{required: true}]}>
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+    )}
+
   </div>
   )
 }

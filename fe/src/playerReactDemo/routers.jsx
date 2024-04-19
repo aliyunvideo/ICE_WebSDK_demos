@@ -56,7 +56,7 @@ function CommonCodeCard({path, code}) {
   return <div>
     <div>
     <Button type='primary' style={{margin: 10}} onClick={() => {
-      window.open(`/player.html#${ path }`)
+      window.open(`/player-react.html#${ path }`)
     }} >打开demo</Button>
     </div>
     <h2>示例代码：</h2>

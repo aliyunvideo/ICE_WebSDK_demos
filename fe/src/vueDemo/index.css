@@ -46,7 +46,3 @@ code {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-
-.ant-tabs.ant-tabs-top {
-  overflow: auto;
-}

@@ -19,7 +19,7 @@ export const transVoiceGroups = (data = []) => {
 let CUSTOM_VOICE_GROUPS = [];
 
 export async function createCustomVoiceGroups() {
-  if(CUSTOM_VOICE_GROUPS.length >0){
+  if (CUSTOM_VOICE_GROUPS.length > 0) {
     return CUSTOM_VOICE_GROUPS;
   }
   CUSTOM_VOICE_GROUPS = await requestGet("ListSmartVoiceGroups").then((res) => {
@@ -192,16 +192,149 @@ export function craeteCustomFontList(customFontList = []) {
   return FONT_FAMILIES.concat(customFontList);
 }
 
+export function createTemplateFetcher(templateId,message) {
+
+
+  const getTemplate = async ( ) => {
+
+    const  getTemplateReq = request("GetTemplate", {
+        // https://help.aliyun.com/zh/ims/developer-reference/api-ice-2020-11-09-gettemplate?spm=a2c4g.11186623.0.0.52155ac3Mtiw0l
+        TemplateId: templateId,
+        RelatedMediaidFlag: 1,
+      });
+
+    const res = await getTemplateReq;
+    return res;
+  };
+  function parseRelatedMap(RelatedMediaids) {
+    let RelatedMediaMap = {};
+    try {
+      RelatedMediaMap = JSON.parse(RelatedMediaids);
+    } catch (ex) {}
+    return RelatedMediaMap;
+  }
+  return {
+
+    deleteTemplateMaterials: async (mediaId, mediaType)=>{
+      const res = await getTemplate();
+      const { RelatedMediaids  } = res.data.Template;
+      const MediaIdsMap = parseRelatedMap(RelatedMediaids);
+      if (MediaIdsMap[mediaType] && MediaIdsMap[mediaType].includes(mediaId)) {
+        MediaIdsMap[mediaType].splice(MediaIdsMap[mediaType].indexOf(mediaId), 1);
+
+        const newRelatedMediaids = JSON.stringify(MediaIdsMap);
+        const updateParams = {
+
+          TemplateId:templateId,
+          RelatedMediaids: newRelatedMediaids,
+        };
+
+        const res = await request('UpdateTemplate',updateParams);
+        if (res.status === 200) {
+
+          return true;
+        }
+      }
+
+      return false;
+
+    },
+
+    addTemplateMaterials: async (items)=>{
+      const res = await getTemplate();
+      const { RelatedMediaids } = res.data.Template;
+      const MediaIdsMap = parseRelatedMap(RelatedMediaids);
+      items.forEach(({ mediaType, mediaId }) => {
+        if (!MediaIdsMap[mediaType]) {
+          MediaIdsMap[mediaType] = [];
+        }
+
+        if (!MediaIdsMap[mediaType].includes(mediaId)) {
+          MediaIdsMap[mediaType].push(mediaId);
+        }
+      });
+
+      // 更新模板绑定素材
+      const newRelatedMediaids = JSON.stringify(MediaIdsMap);
+      const updateParams = {
+
+        TemplateId:templateId,
+        RelatedMediaids: newRelatedMediaids,
+      };
+      await request('UpdateTemplate',updateParams);
+    },
+
+    getTemplateMaterials: async () => {
+      const res = await getTemplate();
+      const { RelatedMediaids } = res.data.Template;
+
+      const RelatedMediaMap = parseRelatedMap(RelatedMediaids);
+
+      const MediaIds = Object.values(RelatedMediaMap).reduce(
+        (acc, cur) => acc.concat(cur),
+        []
+      );
+
+      const getTimes = Math.ceil(MediaIds.length / 20);
+      const promiseGroup = [];
+
+      for (let i = 0; i < getTimes; i++) {
+        promiseGroup.push(
+          request("BatchGetMediaInfos", {
+            AdditionType: "FileInfo",
+            MediaIds: MediaIds.slice(i * 20, (i + 1) * 20).join(","),
+          }).then((res) => {
+            return res.data;
+          })
+        );
+      }
+
+      const result = await Promise.all(promiseGroup);
+      const MediaInfoGroup = result.reduce((acc, { MediaInfos = [] }) => {
+        return acc.concat(MediaInfos);
+      }, []);
+
+      // 转换资源
+      return transMediaList(MediaInfoGroup);
+    },
+    getTemplateProject: async () => {
+      const res = await getTemplate();
+      const timelineString = res.data.Template.Config;
+      const timeline = timelineString ? JSON.parse(timelineString) : undefined;
+      return {
+        projectId: `template_${templateId}`,
+        timeline: timeline,
+      };
+    },
+    updateTemplate:  async ({
+      coverUrl,
+      aspectRatio,
+      timeline,
+      recommend,
+      isAuto,
+    })=>{
+      const updateParams = {
+        TemplateId:templateId,
+        Config: JSON.stringify(timeline)
+      };
+      await request('UpdateTemplate',updateParams);
+      if(!isAuto){
+         message.success('保存成功');
+      }
+    }
+  };
+}
+
 export function createEditor({
   container,
   locale,
   mode = undefined,
   projectId,
+  templateId,
   onSearchMedia,
   onProduceEditingProjectVideo,
-  message
+  message,
 }) {
-
   const init = async () => {
     const customVoiceGroups = await createCustomVoiceGroups();
     const customFontList = craeteCustomFontList([
@@ -212,10 +345,10 @@ export function createEditor({
         // url: 'https://test-shanghai.oss-cn-shanghai.aliyuncs.com/xxxxx/阿朱泡泡体.ttf',
       },
     ]);
-
+    const templateFetcher = createTemplateFetcher(templateId,message);
     window.AliyunVideoEditor.init({
       // 模板模式 参考模板模式接入相关文档：https://help.aliyun.com/document_detail/453481.html?spm=a2c4g.453478.0.0.610148d1ikCUxq
-       mode: mode,
+      mode: mode,
       // 默认字幕文案
       defaultSubtitleText: "默认文案",
 
@@ -283,34 +416,99 @@ export function createEditor({
           };
         });
       },
-      // exportTemplate: async ({ coverUrl, duration, timeline })=>{
-      //   await request('UpdateEditingProject', { // https://help.aliyun.com/document_detail/197835.html
-      //     ProjectId: projectId,
-      //     CoverURL: coverUrl,
-      //     Duration: duration,
-      //     Timeline: JSON.stringify(timeline)
-      //   });
-      //   console.log('export template >>>',coverUrl,duration,timeline);
-      // },
-      // 获取剪辑工程关联素材
-      getEditingProjectMaterials: () => {
-        return request("GetEditingProjectMaterials", {
-          // https://help.aliyun.com/document_detail/209068.html
+      exportTemplate: async ({ coverUrl, duration, timeline }) => {
+        const res = await request("GetEditingProjectMaterials", {
           ProjectId: projectId,
-        }).then((res) => {
-          const data = res.data.MediaInfos;
-          return transMediaList(data); // 需要做一些数据变换
         });
+        debugger;
+        const MediaInfos = get(res, "data.MediaInfos");
+        const addTemplateParams = {
+          Name: `模板:${projectId}:${Date.now()}`,
+          Source: "WebSDK",
+          Type: "Timeline",
+          Config: JSON.stringify(timeline),
+        };
+        if (coverUrl) {
+          addTemplateParams.CoverUrl = coverUrl;
+        }
+        if (MediaInfos) {
+          const materials = MediaInfos;
+          const videoIds = materials
+            .filter((m) => m.MediaBasicInfo.MediaType === "video")
+            .map((m) => m.MediaId);
+          const audioIds = materials
+            .filter((m) => m.MediaBasicInfo.MediaType === "audio")
+            .map((m) => m.MediaId);
+          const imageIds = materials
+            .filter((m) => m.MediaBasicInfo.MediaType === "image")
+            .map((m) => m.MediaId);
+          const maps = {
+            video: videoIds,
+            audio: audioIds,
+            image: imageIds,
+          };
+          addTemplateParams.RelatedMediaids = JSON.stringify(maps);
+        }
+        try {
+          const data = await request("AddTemplate", addTemplateParams);
+          if (data.status === 200) {
+            message.success("导出成功");
+          } else {
+            message.error("导出失败");
+          }
+        } catch (ex) {
+          message.error("导出失败");
+        }
+      },
+      // 获取剪辑工程关联素材
+      getEditingProjectMaterials: async () => {
+        if (mode === "template") {
+          return templateFetcher.getTemplateMaterials();
+        } else {
+          return request("GetEditingProjectMaterials", {
+            // https://help.aliyun.com/document_detail/209068.html
+            ProjectId: projectId,
+          }).then((res) => {
+            const data = res.data.MediaInfos;
+            return transMediaList(data); // 需要做一些数据变换
+          });
+        }
       },
       // 资源库导入素材
-      searchMedia: onSearchMedia,
+      searchMedia: async () => {
+        const result = await onSearchMedia();
+        if (mode === "template") {
+          await templateFetcher.addTemplateMaterials(result);
+        } else {
+          const valueObj = {};
+          result.reduce((acc, curr) => {
+            if (!acc[curr.mediaType]) {
+              acc[curr.mediaType] = curr.mediaId;
+            } else {
+              acc[curr.mediaType] = `${acc[curr.mediaType]},${curr.mediaId}`;
+            }
+            return acc;
+          }, valueObj);
+
+          await request("AddEditingProjectMaterials", {
+            // https://help.aliyun.com/document_detail/209069.html
+            ProjectId: projectId,
+            MaterialMaps: JSON.stringify(valueObj),
+          });
+        }
+        return result;
+      },
       deleteEditingProjectMaterials: async (mediaId, mediaType) => {
+        if(mode === 'template'){
+         return templateFetcher.deleteTemplateMaterials(mediaId,mediaType);
+        } else {
         return request("DeleteEditingProjectMaterials", {
           // https://help.aliyun.com/document_detail/209067.html
           ProjectId: projectId,
           MaterialType: mediaType,
           MaterialIds: mediaId,
         });
+      }
       },
       getStickerCategories: async () => {
         const res = await request("ListAllPublicMediaTags", {
@@ -349,22 +547,26 @@ export function createEditor({
         };
       },
       getEditingProject: async () => {
-        const res = await request("GetEditingProject", {
-          // https://help.aliyun.com/document_detail/197837.html
-          ProjectId: projectId,
-        });
+        if (mode === "template") {
+          return await templateFetcher.getTemplateProject();
+        } else {
+          const res = await request("GetEditingProject", {
+            // https://help.aliyun.com/document_detail/197837.html
+            ProjectId: projectId,
+          });
 
-        const timelineString = res.data.Project.Timeline;
-        const timeline = timelineString
-          ? JSON.parse(timelineString)
-          : undefined;
+          const timelineString = res.data.Project.Timeline;
+          const timeline = timelineString
+            ? JSON.parse(timelineString)
+            : undefined;
 
-        return {
-          projectId,
-          timeline: timeline,
-          title: res.data.Project.Title,
-          modifiedTime: res.data.Project.ModifiedTime,
-        };
+          return {
+            projectId,
+            timeline: timeline,
+            title: res.data.Project.Title,
+            modifiedTime: res.data.Project.ModifiedTime,
+          };
+        }
       },
       updateEditingProject: ({ coverUrl, duration, timeline, isAuto }) => {
         return request("UpdateEditingProject", {
@@ -375,9 +577,12 @@ export function createEditor({
           Timeline: JSON.stringify(timeline),
         }).then(() => {
           // WebSDK 本身会进行自动保存，isAuto 则是告诉调用方这次保存是否自动保存，调用方可以控制只在手动保存时才展示保存成功的提示
-          !isAuto && message.success('保存成功')
-
+          !isAuto && message.success("保存成功");
         });
+      },
+      updateTemplate:async ( params) => {
+       await  templateFetcher.updateTemplate(params);
+
       },
       produceEditingProjectVideo: onProduceEditingProjectVideo,
       // 各片段合成导出
@@ -411,11 +616,10 @@ export function createEditor({
         const res = await request("SubmitMediaProducingJob", reqParam);
         const success = res.status === 200;
         if (success) {
-          message.success('导出成功')
+          message.success("导出成功");
         } else {
-          message.error('导出失败');
+          message.error("导出失败");
         }
-
       },
       // 各片段独立导出
       exportVideoClipsSplit: async (data) => {
@@ -457,9 +661,9 @@ export function createEditor({
         );
 
         if (success) {
-          message.success('导出成功')
+          message.success("导出成功");
         } else {
-          message.error('导出失败');
+          message.error("导出失败");
         }
       },
       // 标记片段独立导出
@@ -501,55 +705,110 @@ export function createEditor({
           })
         );
         if (success) {
-          message.success('导出成功')
+          message.success("导出成功");
         } else {
-          message.error('导出失败');
+          message.error("导出失败");
         }
+      },
+      subtitleConfig: {
+        customTextures: {
+          list: async () => {
+             return [{key:'t0',url:'https://ice-pub-media.myalicdn.com/public-bgImage/bgi-pic/10-CS0004-000008.png'}];
+          },
+          onAddTexture: async () => {
+               /// 添加纹理
+               return {key:'t1',url:'https://ice-pub-media.myalicdn.com/public-bgImage/bgi-pic/5-CS0003-000006.png'}
+          },
+          onDeleteTexture: async (key) => {
+               /// 删除纹理
+          },
+        },
+      },
+      publicMaterials: {
+        getLists: async ()=>{
+          const resultPromise = [
+            {
+              bType: 'bgm',
+              mediaType: 'audio',
+              name: '音乐',
+            },
+            {
+              bType: 'bgi',
+              mediaType: 'image',
+              styleType: 'background',
+              name:'背景',
+            },
+          ].map(async (item) => {
+            const res = await request('ListAllPublicMediaTags',{ BusinessType: item.bType });
+            const tagList = get(res, 'data.MediaTagList');
+            return tagList.map((tag) => {
+              const tagName = locale === 'zh-CN' ? tag.MediaTagNameChinese : tag.MediaTagNameEnglish;
+              return {
+                name: item.name,
+                key: item.bType,
+                mediaType: item.mediaType,
+                styleType: item.styleType,
+                tag: tagName,
+                getItems: async (pageNo, pageSize) => {
+                  const itemRes = await request('ListPublicMediaBasicInfos',{
+                    BusinessType: item.bType,
+                    MediaTagId: tag.MediaTagId,
+                    PageNo: pageNo,
+                    PageSize: pageSize,
+                    IncludeFileBasicInfo: true,
+                  });
+                  const total = get(itemRes, 'data.TotalCount');
+                  const items = get(itemRes, 'data.MediaInfos', []);
+                  const transItems =  transMediaList(items);
+                  return {
+                    items: transItems,
+                    end: pageNo * pageSize >= total,
+                  };
+                },
+              };
+            });
+          });
+
+          const resultList = await Promise.all(resultPromise);
+          const result = resultList.flat();
+          return result;
+        },
       },
       // 智能生成字幕
-      submitASRJob: async (mediaId, startTime, duration) => {
-        const res = await request("SubmitASRJob", {
-          // https://help.aliyun.com/document_detail/203425.html
-          InputFile: mediaId,
-          StartTime: startTime,
-          Duration: duration,
-        });
+      asrConfig: {
 
-        if (res.status === 200) {
-          const jobId = res.data.JobId;
+        interval: 5000,
+        submitASRJob: async (mediaId, startTime, duration) => {
+          const res = await request('SubmitASRJob',{
+            InputFile: mediaId,
+            StartTime:startTime,
+            Duration:duration,
+          });
+          const jobId = get(res, 'data.JobId');
+          return { jobId: jobId, jobDone: false };
+        },
+        getASRJobResult: async (jobId) => {
 
-          const interval = 10000; // 轮询的时间间隔，接入方可以自定义
-          const totalTimes = 10; // 轮询次数，接入方可以自定义
-          let result = {};
-          for (let i = 0; i < totalTimes; i++) {
-            await new Promise((resolve) => {
-              window.setTimeout(resolve, interval);
-            });
-
-            // 获取智能任务结果
-            result = await requestGet("GetSmartHandleJob", {
-              // https://help.aliyun.com/document_detail/203429.html
-              JobId: jobId,
-            });
-            if (result.status !== 200) break; // 任务失败，结束轮询
-            const state = res.data.State;
-            if (
-              state !== "Creating" &&
-              state !== "Created" &&
-              state !== "Executing"
-            )
-              break;
+          const res = await request('GetSmartHandleJob',{
+            JobId: jobId,
+          });
+          const isDone = get(res, 'data.State') === 'Finished';
+          const isError = get(res, 'data.State') === 'Failed';
+          let result;
+          if (res.data && res.data?.Output) {
+            result = JSON.parse(res.data?.Output);
           }
+          return {
+            jobId,
+            jobDone: isDone,
+            result,
+            jobError: isError
+              ?'智能任务失败'
+              : undefined,
+          };
+        },
 
-          if (result.status === 200 && result.data.State === "Finished") {
-            return JSON.parse(result.data.Output);
-          } else {
-            throw new Error("智能识别字幕失败");
-          }
-        } else {
-          throw new Error(res.message);
-        }
-      },
+    },
       // 智能生成配音
       submitAudioProduceJob: async (text, voice, voiceConfig = {}) => {
         const storageListReq = await requestGet("GetStorageList");
@@ -913,12 +1172,16 @@ export function createEditor({
         },
       },
     });
-
   };
+  window.AliyunVideoEditor.getEvents().subscribe((ev)=>{
+     console.log('ev>>>',ev)
+  });
   return {
     init,
     destroy() {
       window.AliyunVideoEditor.destroy();
+
     },
+
   };
 }

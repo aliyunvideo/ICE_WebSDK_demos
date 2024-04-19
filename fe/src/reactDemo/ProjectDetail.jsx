@@ -8,14 +8,14 @@ import {createEditor} from '../common/editorUtil'
 
 
 const myLocale = 'zh-CN';
-function ProjectDetail() {
+function ProjectDetail({mode}) {
   const [showSearchMediaModal, setShowSearchMediaModal] = useState(false)
   const [showProduceVideoModal, setShowProduceVideoModal] = useState(false)
   const containerRef = useRef();
   const searchMediaRef = useRef({})
   const produceVideoRef = useRef({})
   const params = useParams()
-  const {projectId} = params
+  const {projectId,templateId} = params
   useEffect(() => {
     if (!containerRef.current) {
       return
@@ -23,8 +23,9 @@ function ProjectDetail() {
     const {init, destroy} = createEditor({
       container: containerRef.current,
       locale: myLocale,
-      // mode:'template',
+      mode,
       projectId,
+      templateId,
       message,
       onSearchMedia: () => {
         return new Promise((resolve, reject) => {
@@ -56,7 +57,7 @@ function ProjectDetail() {
     return () => {
       destroy()
     }
-  }, [projectId, containerRef, searchMediaRef])
+  }, [projectId, containerRef, searchMediaRef, mode, templateId])
 
   return (
     <div>

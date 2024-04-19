@@ -21,7 +21,8 @@ export default function ProjectTimeline() {
       }
 
       const res = await request('GetEditingProject', { // https://help.aliyun.com/document_detail/197837.html
-        ProjectId: projectId
+        ProjectId: projectId,
+        RequestSource:'WebSDK'
       }) ;
       if(!res.data.Project.Timeline){
         alert('Timeline数据为空')

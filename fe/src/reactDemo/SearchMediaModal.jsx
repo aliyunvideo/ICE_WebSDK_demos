@@ -13,7 +13,7 @@ const options = [
 const PAGE_SIZE = 20
 
 function SearchMediaModal (props) {
-  const { onSubmit, onClose, projectId } = props
+  const { onSubmit, onClose } = props
   const [selectedMedia, setSelectedMedia] = useState([])
   const [confirmLoading, setConfirmLoading] = useState(false)
   const [mediaType, setMediaType] = useState(options[0].value)
@@ -53,12 +53,12 @@ function SearchMediaModal (props) {
         valueObj[mediaType] += `,${mediaId}`
       }
     })
-    const res = await request('AddEditingProjectMaterials', { // https://help.aliyun.com/document_detail/209069.html
-      ProjectId: projectId,
-      MaterialMaps: JSON.stringify(valueObj)
-    })
+    // const res = await request('AddEditingProjectMaterials', { // https://help.aliyun.com/document_detail/209069.html
+    //   ProjectId: projectId,
+    //   MaterialMaps: JSON.stringify(valueObj)
+    // })
     setConfirmLoading(false)
-    onSubmit(transMediaList(res.data.MediaInfos))
+    onSubmit(transMediaList(selectedMedia))
   }
 
   const handleMediaTypeChange = (e) => {

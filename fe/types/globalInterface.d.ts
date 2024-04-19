@@ -144,16 +144,12 @@ export type StarryModel = {
     tfScript: string;
   };
 };
+type SPlayerConfig = {
+  wasmDomain: string;
+  renderType?: 'wasm' | 'native';
+};
 export interface IConfig {
-  assetsPath?: string;
   trackLog?: boolean;
-  audioWasm?: WasmWorkerConfig;
-  starryWasm?: WasmWorkerConfig;
-  starryModel?: StarryModel;
-  splayer?: {
-    wasmDomain: string;
-    renderType?: 'wasm' | 'native';
-  };
   locale?: Locales;
   mode?: string;
   container?: Element | DocumentFragment | null;
@@ -166,8 +162,6 @@ export interface IConfig {
   };
   dynamicSrcQps?: number;
   dynamicSrcRefreshTime?: number;
-  expireTime?: number;
-  fontWasm?: WasmWorkerConfig;
   customFontList?: Array<string | CustomFontItem>;
   customTexts?: CustomTexts;
   customVoiceGroups?: VoiceGroup[];

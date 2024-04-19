@@ -47,6 +47,12 @@ code {
   text-overflow: ellipsis;
 }
 
-.ant-tabs.ant-tabs-top {
-  overflow: auto;
+
+
+.logo{
+    height: 50px;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    font-size: 20px;
 }
