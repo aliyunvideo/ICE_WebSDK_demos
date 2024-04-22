@@ -13,4 +13,5 @@ run/
 typings/
 .nyc_output/
 fe/
+fe
 .env

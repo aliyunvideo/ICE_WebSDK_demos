@@ -89,7 +89,7 @@ if (recommend && recommend.width && recommend.height) {
   };
   resolutions = [fromRecommend].concat(resolutions);
 }
-const fromState = reactive({
+let fromState = reactive({
   fileName: "",
   format: "",
   ossBucket: "",

@@ -50,7 +50,7 @@ const data = reactive({
   total:0
 });
 
-const fromState = reactive({
+let fromState = reactive({
    title:''
 });
 

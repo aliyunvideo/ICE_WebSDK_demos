@@ -30,11 +30,13 @@ export default defineConfig({
     },
   },
   build:{
-    outDir:resolve(__dirname,'../nodejs/fe/build'),
+    outDir:resolve(__dirname,'./build'),
     rollupOptions:{
        input:{
          index:resolve(__dirname,'index.html'),
-         player:resolve(__dirname,'player.html'),
+         indexReact:resolve(__dirname,'index-react.html'),
+         playerReact:resolve(__dirname,'player-react.html'),
+         indexVue:resolve(__dirname,'index-vue.html')
        }
     }
   }
