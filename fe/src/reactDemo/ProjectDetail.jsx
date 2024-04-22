@@ -4,7 +4,7 @@ import {message} from 'antd'
 import SearchMediaModal from './SearchMediaModal'
 import {request} from '../utils'
 import ProduceVideoModal from './ProduceVideoModal'
-import {createEditor} from '../common/editorUtil'
+import {createEditor} from '../editorUtil'
 
 
 const myLocale = 'zh-CN';

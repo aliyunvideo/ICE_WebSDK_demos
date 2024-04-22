@@ -1,7 +1,7 @@
 <template>
   <a-card
   title='工程列表'
-    style="width: 80%;margin: 0 auto;"
+
   >
    <template #extra >
     <div>
@@ -15,11 +15,11 @@
       <a-list-item>
         <a-list-item-meta>
          <template  #title >
-          <router-link  :to="`detail/${item.ProjectId}`" > {{ item.Title }}</router-link>
+          <router-link  :to="`/home/detail/${item.ProjectId}`" > {{ item.Title }}</router-link>
          </template>
         </a-list-item-meta>
-        <a-button :style="{marginLeft: '10px'}" @click="router.push(`/detail/${ item.ProjectId }`)" >编辑</a-button>
-        <a-button :style="{marginLeft: '10px'}" @click="router.push(`/player/${ item.ProjectId }`)" >预览</a-button>
+        <a-button :style="{marginLeft: '10px'}" @click="router.push(`/home/detail/${ item.ProjectId }`)" >编辑</a-button>
+        <a-button :style="{marginLeft: '10px'}" @click="router.push(`/home/player/${ item.ProjectId }`)" >预览</a-button>
       </a-list-item>
     </template>
   </a-list>

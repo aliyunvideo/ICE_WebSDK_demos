@@ -177,14 +177,25 @@ export   function createProjectPlayer({container,controls,minWidth,beforeMediaIn
     container,
     controls,
     minWidth,
-    getMediaInfo:async (mediaId) => {
+    getMediaInfo:async (mediaId,  mediaType, mediaOrigin, InputURL) => {
+
       if(beforeMediaInfo){
         const result = await beforeMediaInfo(mediaId);
         if(result){
           return result;
         }
       }
-      return request('GetMediaInfo', { // https://help.aliyun.com/document_detail/197842.html
+      const params = {
+         MediaId: mediaId,
+         OutputType: 'cdn',
+       };
+       // 从媒资库动态获取字体地址的例子，使用 InputURL 查询
+       if (mediaType === 'font') {
+         params.InputURL = InputURL;
+         delete params.MediaId;
+       }
+       const apiName = mediaOrigin === 'public' ? 'GetPublicMediaInfo' : 'GetMediaInfo';
+      return request(apiName, { // https://help.aliyun.com/document_detail/197842.html
         MediaId: mediaId
       }).then((res) => {
         // 注意，这里仅作为示例，实际中建议做好错误处理，避免如 FileInfoList 为空数组时报错等异常情况

@@ -1,4 +1,3 @@
-
 /* eslint valid-jsdoc: "off" */
 
 'use strict';
@@ -14,7 +13,9 @@ module.exports = appInfo => {
    * built-in config
    * @type {Egg.EggAppConfig}
    **/
-  const config = exports = {};
+  const config = (exports = {
+
+  });
 
   // use for cookie sign key, should change to your own and keep security
   config.keys = appInfo.name + '_1639623660458_3126';
@@ -29,7 +30,9 @@ module.exports = appInfo => {
       accessKeySecret: process.env.AccessKeySecret || '<your secret key>',
       endpoint: process.env.Endpoint || 'ice.cn-hangzhou.aliyuncs.com',
       regionId: process.env.RegionId || 'cn-hangzhou',
+
     },
+
   };
 
   return {

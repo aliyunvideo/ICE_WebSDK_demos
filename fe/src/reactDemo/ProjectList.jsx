@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react'
 import {Link} from 'react-router-dom'
 import {Button, Form, Input, Modal, List, Pagination, Card} from 'antd'
 import {request} from '../utils'
-import {   useNavigate } from 'react-router-dom';
+
 
 const layout = {
   labelCol: {span: 4},
@@ -20,7 +20,7 @@ function ProjectList() {
   const [pageNo, setPageNo] = useState(1)
   const [form] = Form.useForm()
   const [loading,setLoading] = useState(false);
-  const navigate = useNavigate();
+
 
   useEffect(() => {
     setLoading(true);
@@ -49,7 +49,7 @@ function ProjectList() {
     })
   }
 
-  return (<div style={{margin: '16px'}} >
+  return (<div  >
     <Card
       title="工程列表"
       extra={<div>
@@ -63,6 +63,7 @@ function ProjectList() {
 
       <List
         dataSource={list}
+        loading={loading}
         renderItem={(item, index) => {
           return <List.Item  >
             <Link style={{display: 'block'}} to={`/home/detail/${ item.ProjectId }`}>
@@ -72,9 +73,9 @@ function ProjectList() {
               <Link to={`/home/detail/${ item.ProjectId }`}   >
                 <Button style={{marginRight: '10px'}} >编辑</Button>
               </Link>
-              <Button style={{marginLeft: '10px'}} onClick={() => {
-                window.location.href = `/player-react.html#/projectTimeline/${ item.ProjectId }`
-              }} >预览</Button>
+              <Link to={`/home/player/${ item.ProjectId }`}   >
+              <Button style={{marginLeft: '10px'}}   >预览</Button>
+              </Link>
             </div>
           </List.Item>
         }}

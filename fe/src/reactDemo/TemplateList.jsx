@@ -1,13 +1,8 @@
 import {useEffect, useState} from 'react'
 import {Link} from 'react-router-dom'
-import {Button, Form, Input, Modal, List, Pagination, Card} from 'antd'
+import {Button, List, Pagination, Card} from 'antd'
 import {request} from '../utils'
-import {   useNavigate } from 'react-router-dom';
 
-const layout = {
-  labelCol: {span: 4},
-  wrapperCol: {span: 20}
-}
 const PageSize = 10;
 
 

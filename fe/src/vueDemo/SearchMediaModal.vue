@@ -61,9 +61,9 @@ const options = [
 ];
 const PAGE_SIZE = 20;
 
-const props = defineProps([ "projectId"]);
+
 const emit = defineEmits(['submit','close'])
-const {  projectId } = props;
+
 const selectedMedia = ref<any[]>([]);
 const confirmLoading = ref(false);
 const mediaType = ref(options[0].value);
@@ -73,24 +73,8 @@ const total = ref(0);
 const media = ref<any[]>([]);
 const selectedMediaIds = ref<string[]>([]);
 const handleSubmit = async () => {
-  confirmLoading.value = true;
-    // 组装数据
-    const valueObj = {}
-    selectedMedia.value.forEach((item) => {
-      const mediaType = item.MediaBasicInfo.MediaType
-      const mediaId = item.MediaId
-      if (!valueObj[mediaType]) {
-        valueObj[mediaType] = mediaId
-      } else {
-        valueObj[mediaType] += `,${mediaId}`
-      }
-    })
-    const res = await request('AddEditingProjectMaterials', { // https://help.aliyun.com/document_detail/209069.html
-      ProjectId: projectId,
-      MaterialMaps: JSON.stringify(valueObj)
-    })
-    confirmLoading.value = false;
-    const result = transMediaList(res.data.MediaInfos)
+
+    const result = transMediaList( selectedMedia.value)
    emit('submit',result);
 };
 const handleMediaTypeChange = (e) => {

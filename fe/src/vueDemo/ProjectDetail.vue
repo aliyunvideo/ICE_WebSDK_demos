@@ -20,7 +20,7 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { createEditor } from "../common/editorUtil";
+import { createEditor } from "../editorUtil";
 import { request } from "../utils";
 import SearchMediaModal from "./SearchMediaModal.vue";
 import ProduceVideoModal from "./ProduceVideoModal.vue";
@@ -32,6 +32,7 @@ const containerRef = ref<HTMLDivElement | null>(null);
 const editorRef = ref<{ destroy: () => void } | null>(null);
 const route = useRoute();
 const projectIdRef = ref(route.params.projectId as string);
+const templateIdRef = ref(route.params.templateId as string);
 const searchMediaRef = ref({ resolve: (v: any) => {} });
 const searchMediaShowRef = ref(false);
 const produceVideoRef = ref<{
@@ -113,14 +114,15 @@ const onProduceVideoClose = () => {
   produceVideoShowRef.value = false;
 };
 onMounted(() => {
-  if (!containerRef.value || !projectIdRef.value) {
+  if (!containerRef.value || (!projectIdRef.value && !templateIdRef.value)) {
     return;
   }
   const editor = createEditor({
     container: containerRef.value,
     projectId: projectIdRef.value,
+    templateId: templateIdRef.value,
     locale: myLocale,
-    mode: undefined,
+    mode: templateIdRef.value ?'template':'project',
     onSearchMedia: async () => {
       searchMediaShowRef.value = true;
       return new Promise<any>((resolve) => {

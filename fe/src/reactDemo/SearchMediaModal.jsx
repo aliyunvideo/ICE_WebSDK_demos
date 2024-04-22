@@ -41,23 +41,6 @@ function SearchMediaModal (props) {
   }, [mediaType, page])
 
   const handleSubmit = async () => {
-    setConfirmLoading(true)
-    // 组装数据
-    const valueObj = {}
-    selectedMedia.forEach((item) => {
-      const mediaType = item.MediaBasicInfo.MediaType
-      const mediaId = item.MediaId
-      if (!valueObj[mediaType]) {
-        valueObj[mediaType] = mediaId
-      } else {
-        valueObj[mediaType] += `,${mediaId}`
-      }
-    })
-    // const res = await request('AddEditingProjectMaterials', { // https://help.aliyun.com/document_detail/209069.html
-    //   ProjectId: projectId,
-    //   MaterialMaps: JSON.stringify(valueObj)
-    // })
-    setConfirmLoading(false)
     onSubmit(transMediaList(selectedMedia))
   }
 

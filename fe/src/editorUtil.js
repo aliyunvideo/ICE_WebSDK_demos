@@ -1,4 +1,4 @@
-import { request, requestGet, transMediaList, poll } from "../utils";
+import { request, requestGet, transMediaList, poll } from "./utils";
 import { get, lowerFirst } from "lodash";
 
 export const transVoiceGroups = (data = []) => {
@@ -328,7 +328,7 @@ export function createTemplateFetcher(templateId,message) {
 export function createEditor({
   container,
   locale,
-  mode = undefined,
+  mode = 'project',
   projectId,
   templateId,
   onSearchMedia,
@@ -382,8 +382,18 @@ export function createEditor({
       locale,
       // 媒资库默认情况下播放地址会过期，所以需要动态获取
       useDynamicSrc: true,
-      getDynamicSrc: (mediaId, mediaType) => {
-        return request("GetMediaInfo", {
+      getDynamicSrc: (mediaId, mediaType, mediaOrigin, InputURL) => {
+        const params = {
+          MediaId: mediaId,
+          OutputType: 'cdn',
+        };
+        // 从媒资库动态获取字体地址的例子，使用 InputURL 查询
+        if (mediaType === 'font') {
+          params.InputURL = InputURL;
+          delete params.MediaId;
+        }
+        const apiName = mediaOrigin === 'public' ? 'GetPublicMediaInfo' : 'GetMediaInfo';
+        return request(apiName, {
           // https://help.aliyun.com/document_detail/197842.html
           MediaId: mediaId,
         }).then((res) => {
@@ -1173,9 +1183,10 @@ export function createEditor({
       },
     });
   };
-  window.AliyunVideoEditor.getEvents().subscribe((ev)=>{
-     console.log('ev>>>',ev)
-  });
+  // 打印所有事件
+  // window.AliyunVideoEditor.getEvents().subscribe((ev)=>{
+  //    console.log('ev>>>',ev)
+  // });
   return {
     init,
     destroy() {
