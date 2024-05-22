@@ -119,3 +119,30 @@ export async function poll(fn, fnCondition, ms, timeout = 1000 * 60 * 30) {
     result,
   };
 }
+
+
+export function pageData(items, pageSize) {
+  const total = items.length;
+  const pageCount = Math.ceil(total / pageSize);
+  return {
+    total,
+    pageSize,
+    pageCount,
+    getData: (page) => {
+      if (page > pageCount) {
+        page = pageCount;
+      }
+      if (page < 1) {
+        page = 1;
+      }
+      const pageNo = page - 1;
+      const startIndex = pageNo * pageSize;
+      let endIndex = startIndex + pageSize;
+      if (endIndex > total) {
+        endIndex = total;
+      }
+      const data = items.slice(startIndex, endIndex);
+      return data;
+    },
+  };
+}

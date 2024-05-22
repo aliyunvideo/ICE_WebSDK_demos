@@ -1,4 +1,4 @@
-import { request, requestGet, transMediaList, poll } from "./utils";
+import { request, requestGet, transMediaList, poll, pageData } from "./utils";
 import { get, lowerFirst } from "lodash";
 
 export const transVoiceGroups = (data = []) => {
@@ -192,16 +192,13 @@ export function craeteCustomFontList(customFontList = []) {
   return FONT_FAMILIES.concat(customFontList);
 }
 
-export function createTemplateFetcher(templateId,message) {
-
-
-  const getTemplate = async ( ) => {
-
-    const  getTemplateReq = request("GetTemplate", {
-        // https://help.aliyun.com/zh/ims/developer-reference/api-ice-2020-11-09-gettemplate?spm=a2c4g.11186623.0.0.52155ac3Mtiw0l
-        TemplateId: templateId,
-        RelatedMediaidFlag: 1,
-      });
+export function createTemplateFetcher(templateId, message) {
+  const getTemplate = async () => {
+    const getTemplateReq = request("GetTemplate", {
+      // https://help.aliyun.com/zh/ims/developer-reference/api-ice-2020-11-09-gettemplate?spm=a2c4g.11186623.0.0.52155ac3Mtiw0l
+      TemplateId: templateId,
+      RelatedMediaidFlag: 1,
+    });
 
     const res = await getTemplateReq;
     return res;
@@ -214,33 +211,33 @@ export function createTemplateFetcher(templateId,message) {
     return RelatedMediaMap;
   }
   return {
-
-    deleteTemplateMaterials: async (mediaId, mediaType)=>{
+    deleteTemplateMaterials: async (mediaId, mediaType) => {
       const res = await getTemplate();
-      const { RelatedMediaids  } = res.data.Template;
+      const { RelatedMediaids } = res.data.Template;
       const MediaIdsMap = parseRelatedMap(RelatedMediaids);
       if (MediaIdsMap[mediaType] && MediaIdsMap[mediaType].includes(mediaId)) {
-        MediaIdsMap[mediaType].splice(MediaIdsMap[mediaType].indexOf(mediaId), 1);
+        MediaIdsMap[mediaType].splice(
+          MediaIdsMap[mediaType].indexOf(mediaId),
+          1
+        );
 
         const newRelatedMediaids = JSON.stringify(MediaIdsMap);
         const updateParams = {
-
-          TemplateId:templateId,
+          TemplateId: templateId,
           RelatedMediaids: newRelatedMediaids,
         };
 
-        const res = await request('UpdateTemplate',updateParams);
-        if (res.status === 200) {
+        const res = await request("UpdateTemplate", updateParams);
 
+        if (res.status === 200) {
           return true;
         }
       }
 
       return false;
-
     },
 
-    addTemplateMaterials: async (items)=>{
+    addTemplateMaterials: async (items) => {
       const res = await getTemplate();
       const { RelatedMediaids } = res.data.Template;
       const MediaIdsMap = parseRelatedMap(RelatedMediaids);
@@ -257,11 +254,10 @@ export function createTemplateFetcher(templateId,message) {
       // 更新模板绑定素材
       const newRelatedMediaids = JSON.stringify(MediaIdsMap);
       const updateParams = {
-
-        TemplateId:templateId,
+        TemplateId: templateId,
         RelatedMediaids: newRelatedMediaids,
       };
-      await request('UpdateTemplate',updateParams);
+      await request("UpdateTemplate", updateParams);
     },
 
     getTemplateMaterials: async () => {
@@ -306,29 +302,29 @@ export function createTemplateFetcher(templateId,message) {
         timeline: timeline,
       };
     },
-    updateTemplate:  async ({
+    updateTemplate: async ({
       coverUrl,
       aspectRatio,
       timeline,
       recommend,
       isAuto,
-    })=>{
+    }) => {
       const updateParams = {
-        TemplateId:templateId,
-        Config: JSON.stringify(timeline)
+        TemplateId: templateId,
+        Config: JSON.stringify(timeline),
       };
-      await request('UpdateTemplate',updateParams);
-      if(!isAuto){
-         message.success('保存成功');
+      await request("UpdateTemplate", updateParams);
+      if (!isAuto) {
+        message.success("保存成功");
       }
-    }
+    },
   };
 }
 
 export function createEditor({
   container,
   locale,
-  mode = 'project',
+  mode = "project",
   projectId,
   templateId,
   onSearchMedia,
@@ -345,7 +341,7 @@ export function createEditor({
         // url: 'https://test-shanghai.oss-cn-shanghai.aliyuncs.com/xxxxx/阿朱泡泡体.ttf',
       },
     ]);
-    const templateFetcher = createTemplateFetcher(templateId,message);
+    const templateFetcher = createTemplateFetcher(templateId, message);
     window.AliyunVideoEditor.init({
       // 模板模式 参考模板模式接入相关文档：https://help.aliyun.com/document_detail/453481.html?spm=a2c4g.453478.0.0.610148d1ikCUxq
       mode: mode,
@@ -380,57 +376,129 @@ export function createEditor({
       container: container,
       // 多语言
       locale,
+      // 获取在getEditingProjectMaterials不存在，但在timeline中存在的素材信息
+      getTimelineMaterials: async (params) => {
+        const jobs = [];
+
+        params.forEach((item) => {
+          if (item.mediaIdType === "mediaURL") {
+            jobs.push({
+              Action: "GetMediaInfo",
+              params: { InputURL: item.mediaId },
+              item,
+            });
+          } else if (item.mediaId.indexOf("public") >= 0) {
+            jobs.push({
+              Action: "GetPublicMediaInfo",
+              params: { MediaId: item.mediaId },
+              item,
+            });
+          } else {
+            jobs.push({
+              Action: "GetMediaInfo",
+              params: { MediaId: item.mediaId },
+              item,
+            });
+          }
+        });
+        const jobPage = pageData(jobs, 5);
+        let results = [];
+        const extraLibs = [];
+        for (let i = 0; i < jobPage.pageCount; i++) {
+          const items = jobPage.getData(i + 1);
+          const promises = items.map(async (item) => {
+            try {
+              const res = await request(item.Action, item.params);
+              return get(res, "data.MediaInfo");
+            } catch (ex) {
+              // 外链地址兜底逻辑
+              extraLibs.push({
+                mediaId: item.item.mediaId,
+                mediaIdType: item.item.mediaIdType,
+                mediaType: item.item.mediaType,
+                [`${item.item.mediaType}`]: {
+                  title: `${item.item.mediaType}_${item.item.mediaId}`, //标题，视频标题
+                  duration: undefined, // 需要填写真实的视频或音频时长
+                  coverUrl:
+                    item.item.mediaType === "image"
+                      ? item.item.mediaId
+                      : undefined, ///封面图，图片时必填
+                },
+              });
+            }
+          });
+          // eslint-disable-next-line no-await-in-loop
+          const data = await Promise.all(promises);
+          results = results.concat(data.filter((item) => item !== undefined));
+        }
+
+        const mediaLibs = transMediaList(results);
+
+        return [...mediaLibs, ...extraLibs];
+      },
       // 媒资库默认情况下播放地址会过期，所以需要动态获取
       useDynamicSrc: true,
       getDynamicSrc: (mediaId, mediaType, mediaOrigin, InputURL) => {
         const params = {
           MediaId: mediaId,
-          OutputType: 'cdn',
+          OutputType: "cdn",
         };
         // 从媒资库动态获取字体地址的例子，使用 InputURL 查询
-        if (mediaType === 'font') {
+        if (mediaType === "font") {
           params.InputURL = InputURL;
           delete params.MediaId;
         }
-        const apiName = mediaOrigin === 'public' ? 'GetPublicMediaInfo' : 'GetMediaInfo';
+        if (mediaOrigin === "mediaURL") {
+          params.InputURL = mediaId;
+          delete params.MediaId;
+        }
+
+        const apiName =
+          mediaOrigin === "public" ? "GetPublicMediaInfo" : "GetMediaInfo";
         return request(apiName, {
           // https://help.aliyun.com/document_detail/197842.html
           MediaId: mediaId,
-        }).then((res) => {
-          // 注意，这里仅作为示例，实际中建议做好错误处理，避免如 FileInfoList 为空数组时报错等异常情况
-          const fileInfoList = get(res, "data.MediaInfo.FileInfoList", []);
-          let mediaUrl, maskUrl;
-          let sourceFile = fileInfoList.find((item) => {
-            return item?.FileBasicInfo?.FileType === "source_file";
-          });
-          if (!sourceFile) {
-            sourceFile = fileInfoList[0];
-          }
-          const maskFile = fileInfoList.find((item) => {
-            return (
-              item.FileBasicInfo &&
-              item.FileBasicInfo.FileUrl &&
-              item.FileBasicInfo.FileUrl.indexOf("_mask") > 0
-            );
-          });
-          if (maskFile) {
-            maskUrl = get(maskFile, "FileBasicInfo.FileUrl");
-          }
-          mediaUrl = get(sourceFile, "FileBasicInfo.FileUrl");
-          const codec = get(sourceFile, "VideoStreamInfoList[0].CodecName");
+        })
+          .then((res) => {
+            // 注意，这里仅作为示例，实际中建议做好错误处理，避免如 FileInfoList 为空数组时报错等异常情况
+            const fileInfoList = get(res, "data.MediaInfo.FileInfoList", []);
+            let mediaUrl, maskUrl;
+            let sourceFile = fileInfoList.find((item) => {
+              return item?.FileBasicInfo?.FileType === "source_file";
+            });
+            if (!sourceFile) {
+              sourceFile = fileInfoList[0];
+            }
+            const maskFile = fileInfoList.find((item) => {
+              return (
+                item.FileBasicInfo &&
+                item.FileBasicInfo.FileUrl &&
+                item.FileBasicInfo.FileUrl.indexOf("_mask") > 0
+              );
+            });
+            if (maskFile) {
+              maskUrl = get(maskFile, "FileBasicInfo.FileUrl");
+            }
+            mediaUrl = get(sourceFile, "FileBasicInfo.FileUrl");
+            const codec = get(sourceFile, "VideoStreamInfoList[0].CodecName");
 
-          return {
-            url: mediaUrl,
-            codec,
-            maskUrl,
-          };
-        });
+            return {
+              url: mediaUrl,
+              codec,
+              maskUrl,
+            };
+          })
+          .catch((ex) => {
+            // 外链地址兜底逻辑
+            if (mediaOrigin === "mediaURL") {
+              return mediaId;
+            }
+          });
       },
       exportTemplate: async ({ coverUrl, duration, timeline }) => {
         const res = await request("GetEditingProjectMaterials", {
           ProjectId: projectId,
         });
-        debugger;
         const MediaInfos = get(res, "data.MediaInfos");
         const addTemplateParams = {
           Name: `模板:${projectId}:${Date.now()}`,
@@ -509,16 +577,16 @@ export function createEditor({
         return result;
       },
       deleteEditingProjectMaterials: async (mediaId, mediaType) => {
-        if(mode === 'template'){
-         return templateFetcher.deleteTemplateMaterials(mediaId,mediaType);
+        if (mode === "template") {
+          return templateFetcher.deleteTemplateMaterials(mediaId, mediaType);
         } else {
-        return request("DeleteEditingProjectMaterials", {
-          // https://help.aliyun.com/document_detail/209067.html
-          ProjectId: projectId,
-          MaterialType: mediaType,
-          MaterialIds: mediaId,
-        });
-      }
+          return request("DeleteEditingProjectMaterials", {
+            // https://help.aliyun.com/document_detail/209067.html
+            ProjectId: projectId,
+            MaterialType: mediaType,
+            MaterialIds: mediaId,
+          });
+        }
       },
       getStickerCategories: async () => {
         const res = await request("ListAllPublicMediaTags", {
@@ -590,9 +658,8 @@ export function createEditor({
           !isAuto && message.success("保存成功");
         });
       },
-      updateTemplate:async ( params) => {
-       await  templateFetcher.updateTemplate(params);
-
+      updateTemplate: async (params) => {
+        await templateFetcher.updateTemplate(params);
       },
       produceEditingProjectVideo: onProduceEditingProjectVideo,
       // 各片段合成导出
@@ -723,36 +790,49 @@ export function createEditor({
       subtitleConfig: {
         customTextures: {
           list: async () => {
-             return [{key:'t0',url:'https://ice-pub-media.myalicdn.com/public-bgImage/bgi-pic/10-CS0004-000008.png'}];
+            return [
+              {
+                key: "t0",
+                url: "https://ice-pub-media.myalicdn.com/public-bgImage/bgi-pic/10-CS0004-000008.png",
+              },
+            ];
           },
           onAddTexture: async () => {
-               /// 添加纹理
-               return {key:'t1',url:'https://ice-pub-media.myalicdn.com/public-bgImage/bgi-pic/5-CS0003-000006.png'}
+            /// 添加纹理
+            return {
+              key: "t1",
+              url: "https://ice-pub-media.myalicdn.com/public-bgImage/bgi-pic/5-CS0003-000006.png",
+            };
           },
           onDeleteTexture: async (key) => {
-               /// 删除纹理
+            /// 删除纹理
           },
         },
       },
       publicMaterials: {
-        getLists: async ()=>{
+        getLists: async () => {
           const resultPromise = [
             {
-              bType: 'bgm',
-              mediaType: 'audio',
-              name: '音乐',
+              bType: "bgm",
+              mediaType: "audio",
+              name: "音乐",
             },
             {
-              bType: 'bgi',
-              mediaType: 'image',
-              styleType: 'background',
-              name:'背景',
+              bType: "bgi",
+              mediaType: "image",
+              styleType: "background",
+              name: "背景",
             },
           ].map(async (item) => {
-            const res = await request('ListAllPublicMediaTags',{ BusinessType: item.bType });
-            const tagList = get(res, 'data.MediaTagList');
+            const res = await request("ListAllPublicMediaTags", {
+              BusinessType: item.bType,
+            });
+            const tagList = get(res, "data.MediaTagList");
             return tagList.map((tag) => {
-              const tagName = locale === 'zh-CN' ? tag.MediaTagNameChinese : tag.MediaTagNameEnglish;
+              const tagName =
+                locale === "zh-CN"
+                  ? tag.MediaTagNameChinese
+                  : tag.MediaTagNameEnglish;
               return {
                 name: item.name,
                 key: item.bType,
@@ -760,16 +840,16 @@ export function createEditor({
                 styleType: item.styleType,
                 tag: tagName,
                 getItems: async (pageNo, pageSize) => {
-                  const itemRes = await request('ListPublicMediaBasicInfos',{
+                  const itemRes = await request("ListPublicMediaBasicInfos", {
                     BusinessType: item.bType,
                     MediaTagId: tag.MediaTagId,
                     PageNo: pageNo,
                     PageSize: pageSize,
                     IncludeFileBasicInfo: true,
                   });
-                  const total = get(itemRes, 'data.TotalCount');
-                  const items = get(itemRes, 'data.MediaInfos', []);
-                  const transItems =  transMediaList(items);
+                  const total = get(itemRes, "data.TotalCount");
+                  const items = get(itemRes, "data.MediaInfos", []);
+                  const transItems = transMediaList(items);
                   return {
                     items: transItems,
                     end: pageNo * pageSize >= total,
@@ -786,24 +866,22 @@ export function createEditor({
       },
       // 智能生成字幕
       asrConfig: {
-
         interval: 5000,
         submitASRJob: async (mediaId, startTime, duration) => {
-          const res = await request('SubmitASRJob',{
+          const res = await request("SubmitASRJob", {
             InputFile: mediaId,
-            StartTime:startTime,
-            Duration:duration,
+            StartTime: startTime,
+            Duration: duration,
           });
-          const jobId = get(res, 'data.JobId');
+          const jobId = get(res, "data.JobId");
           return { jobId: jobId, jobDone: false };
         },
         getASRJobResult: async (jobId) => {
-
-          const res = await request('GetSmartHandleJob',{
+          const res = await request("GetSmartHandleJob", {
             JobId: jobId,
           });
-          const isDone = get(res, 'data.State') === 'Finished';
-          const isError = get(res, 'data.State') === 'Failed';
+          const isDone = get(res, "data.State") === "Finished";
+          const isError = get(res, "data.State") === "Failed";
           let result;
           if (res.data && res.data?.Output) {
             result = JSON.parse(res.data?.Output);
@@ -812,13 +890,10 @@ export function createEditor({
             jobId,
             jobDone: isDone,
             result,
-            jobError: isError
-              ?'智能任务失败'
-              : undefined,
+            jobError: isError ? "智能任务失败" : undefined,
           };
         },
-
-    },
+      },
       // 智能生成配音
       submitAudioProduceJob: async (text, voice, voiceConfig = {}) => {
         const storageListReq = await requestGet("GetStorageList");
@@ -1191,8 +1266,6 @@ export function createEditor({
     init,
     destroy() {
       window.AliyunVideoEditor.destroy();
-
     },
-
   };
 }
