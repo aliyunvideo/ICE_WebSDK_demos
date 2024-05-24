@@ -69,14 +69,14 @@ export function transMediaList (data) {
 }
 
 export function request (action, params) {
-  return axios.post('http://localhost:7001/openApiPost', {
+  return axios.post('/openApiPost', {
     ...params,
     Action: action
   })
 }
 
 export function requestGet(action, params){
-  return axios.get('http://localhost:7001/openApi', {
+  return axios.get('/openApi', {
     params:{
         ...params,
       Action: action
