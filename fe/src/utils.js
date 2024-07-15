@@ -146,3 +146,17 @@ export function pageData(items, pageSize) {
     },
   };
 }
+
+function camelCaseFromPascalCase(str) {
+  return str[0].toLowerCase() + str.slice(1);
+}
+export function objectKeyPascalCaseToCamelCase(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(objectKeyPascalCaseToCamelCase);
+  const res = {};
+  for (const key of Object.keys(obj)) {
+    const value = objectKeyPascalCaseToCamelCase(obj[key]);
+    res[camelCaseFromPascalCase(key)] = value;
+  }
+  return res;
+}

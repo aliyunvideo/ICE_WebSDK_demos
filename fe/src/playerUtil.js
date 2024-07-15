@@ -1,5 +1,6 @@
-import {request } from './utils';
+import {request, pageData,transMediaList } from './utils';
 import {get} from 'lodash';
+import { createEditor  } from './editorUtil';
 
 export function customFontTimeline() {
   return JSON.stringify({
@@ -172,7 +173,9 @@ export function parseTimeline(timeline,options ){
 }
 
 
-export   function createProjectPlayer({container,controls,minWidth,beforeMediaInfo}){
+export function createProjectPlayer({container,controls,minWidth,beforeMediaInfo}){
+   const {initConfig} = createEditor({container,projectId:''});
+   const {ttsConfig,asrConfig,avatarConfig,getTimelineMaterials} = initConfig();
   const player = new window.AliyunTimelinePlayer({
     container,
     controls,
@@ -226,7 +229,11 @@ export   function createProjectPlayer({container,controls,minWidth,beforeMediaIn
           maskUrl
         }
       })
-    }
+    },
+    getTimelineMaterials,
+    ttsConfig,
+    asrConfig,
+    avatarConfig
   });
 
   return player;

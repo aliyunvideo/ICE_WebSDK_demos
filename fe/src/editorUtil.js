@@ -1,4 +1,4 @@
-import { request, requestGet, transMediaList, poll, pageData } from "./utils";
+import { request, requestGet, transMediaList, objectKeyPascalCaseToCamelCase, pageData } from "./utils";
 import { get, lowerFirst } from "lodash";
 
 export const transVoiceGroups = (data = []) => {
@@ -24,7 +24,7 @@ export async function createCustomVoiceGroups() {
   }
   CUSTOM_VOICE_GROUPS = await requestGet("ListSmartVoiceGroups").then((res) => {
     const commonItems = transVoiceGroups(get(res, "data.VoiceGroups", []));
-    const customItems = [
+    const customItems = commonItems.concat([
       {
         type: "基础",
         category: "专属人声",
@@ -168,7 +168,7 @@ export async function createCustomVoiceGroups() {
           };
         },
       },
-    ].concat(commonItems);
+    ]);
     return customItems;
   });
   return CUSTOM_VOICE_GROUPS;
@@ -331,8 +331,10 @@ export function createEditor({
   onProduceEditingProjectVideo,
   message,
 }) {
-  const init = async () => {
-    const customVoiceGroups = await createCustomVoiceGroups();
+
+  const initConfig = (customVoiceGroups)=>{
+
+    const templateFetcher = createTemplateFetcher(templateId, message);
     const customFontList = craeteCustomFontList([
       {
         // key: '阿朱泡泡体', // 需要是唯一的key，不能与与其他字体相同，中英文均可
@@ -341,8 +343,11 @@ export function createEditor({
         // url: 'https://test-shanghai.oss-cn-shanghai.aliyuncs.com/xxxxx/阿朱泡泡体.ttf',
       },
     ]);
-    const templateFetcher = createTemplateFetcher(templateId, message);
-    window.AliyunVideoEditor.init({
+   return {
+      licenseConfig: {
+        rootDomain: "", // license使用的根域名，例如abc.com
+        licenseKey: "", // 申请的licenseKey，没有配置licenseKey，在预览时会出现水印,没有配置license的情况下，只能在localhost的域名下预览
+      },
       // 模板模式 参考模板模式接入相关文档：https://help.aliyun.com/document_detail/453481.html?spm=a2c4g.453478.0.0.610148d1ikCUxq
       mode: mode,
       // 默认字幕文案
@@ -382,11 +387,19 @@ export function createEditor({
 
         params.forEach((item) => {
           if (item.mediaIdType === "mediaURL") {
-            jobs.push({
-              Action: "GetMediaInfo",
-              params: { InputURL: item.mediaId },
-              item,
-            });
+            if (item.mediaId.includes("ice-pub")) {
+              jobs.push({
+                Action: "GetPublicMediaInfo",
+                params: { InputURL: item.mediaId },
+                item,
+              });
+            } else {
+              jobs.push({
+                Action: "GetMediaInfo",
+                params: { InputURL: item.mediaId },
+                item,
+              });
+            }
           } else if (item.mediaId.indexOf("public") >= 0) {
             jobs.push({
               Action: "GetPublicMediaInfo",
@@ -631,6 +644,7 @@ export function createEditor({
           const res = await request("GetEditingProject", {
             // https://help.aliyun.com/document_detail/197837.html
             ProjectId: projectId,
+            RequestSource: "WebSDK",
           });
 
           const timelineString = res.data.Project.Timeline;
@@ -643,6 +657,7 @@ export function createEditor({
             timeline: timeline,
             title: res.data.Project.Title,
             modifiedTime: res.data.Project.ModifiedTime,
+            timelineConvertStatus: res.data.TimelineConvertStatus,
           };
         }
       },
@@ -895,105 +910,214 @@ export function createEditor({
         },
       },
       // 智能生成配音
-      submitAudioProduceJob: async (text, voice, voiceConfig = {}) => {
-        const storageListReq = await requestGet("GetStorageList");
-        const tempFileStorageLocation =
-          storageListReq.data.StorageInfoList.find((item) => {
-            return item.EditingTempFileStorage;
-          });
-        if (!tempFileStorageLocation) {
-          throw new Error("未设置临时存储路径");
-        }
+      // submitAudioProduceJob: async (text, voice, voiceConfig = {}) => {
+      //   const storageListReq = await requestGet("GetStorageList");
+      //   const tempFileStorageLocation =
+      //     storageListReq.data.StorageInfoList.find((item) => {
+      //       return item.EditingTempFileStorage;
+      //     });
+      //   if (!tempFileStorageLocation) {
+      //     throw new Error("未设置临时存储路径");
+      //   }
 
-        const { StorageLocation, Path } = tempFileStorageLocation;
-        // 智能生成配音会生成一个音频文件存放到接入方的 OSS 上，这里 bucket, path 和 filename 是一种命名的示例，接入方可以自定义
-        const bucket = StorageLocation.split(".")[0];
-        const path = Path;
-        const filename = `${text.slice(0, 10)}${Date.now()}`;
-        const editingConfig = voiceConfig.custom
-          ? {
-              customizedVoice: voice,
-              format: "mp3",
-              ...voiceConfig,
+      //   const { StorageLocation, Path } = tempFileStorageLocation;
+      //   // 智能生成配音会生成一个音频文件存放到接入方的 OSS 上，这里 bucket, path 和 filename 是一种命名的示例，接入方可以自定义
+      //   const bucket = StorageLocation.split(".")[0];
+      //   const path = Path;
+      //   const filename = `${text.slice(0, 10)}${Date.now()}`;
+      //   const editingConfig = voiceConfig.custom
+      //     ? {
+      //         customizedVoice: voice,
+      //         format: "mp3",
+      //         ...voiceConfig,
+      //       }
+      //     : {
+      //         voice,
+      //         format: "mp3",
+      //         ...voiceConfig,
+      //       };
+      //   // 1-提交智能配音任务
+      //   const res1 = await request("SubmitAudioProduceJob", {
+      //     // https://help.aliyun.com/document_detail/212273.html
+      //     EditingConfig: JSON.stringify(editingConfig),
+      //     InputConfig: text,
+      //     OutputConfig: JSON.stringify({
+      //       bucket,
+      //       object: `${path}${filename}`,
+      //     }),
+      //   });
+
+      //   if (res1.status !== 200) {
+      //     throw new Error("暂未识别当前文字内容");
+      //   }
+
+      //   // 2-智能配音任务是否完成【轮询】
+      //   const getJobStatus = () => {
+      //     return requestGet("GetSmartHandleJob", {
+      //       // https://help.aliyun.com/document_detail/203429.html
+      //       JobId: res1.data.JobId,
+      //     });
+      //   };
+      //   const shouldContinueGetJobStatus = (res) => {
+      //     if (res.status !== 200 || res.data.State === "Finished") return false;
+      //     return true;
+      //   };
+      //   const { result: res2 } = await poll(
+      //     getJobStatus,
+      //     shouldContinueGetJobStatus,
+      //     2000,
+      //     20000
+      //   );
+
+      //   // 3-智能配音任务完成则拉取生成的音频【轮询】
+      //   if (res2.status === 200 && res2.data.State === "Finished") {
+      //     const mediaId = res2.data.Output;
+
+      //     const getProducedAudioInfo = () => {
+      //       return request("GetMediaInfo", {
+      //         MediaId: mediaId,
+      //       });
+      //     };
+      //     const shouldContinueGetProducedAudioInfo = (res) => {
+      //       if (res.status !== 200) return false;
+      //       if (res.data?.MediaInfo?.MediaBasicInfo?.Status === "Normal")
+      //         return false;
+      //       return true;
+      //     };
+      //     const res3 = await poll(
+      //       getProducedAudioInfo,
+      //       shouldContinueGetProducedAudioInfo,
+      //       5000,
+      //       15000
+      //     );
+
+      //     if (res3.timeout) {
+      //       throw new Error("智能配音任务超时，请重新发起");
+      //     } else {
+      //       const result = transMediaList([res3.result.data.MediaInfo]); // transMediaList 同前文中的定义
+      //       const newAudio = result[0];
+      //       // 4-将新的音频素材与工程进行绑定
+      //       await request("AddEditingProjectMaterials", {
+      //         ProjectId: projectId,
+      //         MaterialMaps: JSON.stringify({
+      //           audio: newAudio.mediaId,
+      //         }),
+      //       });
+      //       return newAudio;
+      //     }
+      //   } else {
+      //     throw new Error(res2.data.ErrorMsg || "抱歉，暂未识别当前文字内容");
+      //   }
+      // },
+      // 智能生成配音
+      ttsConfig: {
+        interval: 3000,
+        submitAudioProduceJob: async (text, voice, voiceConfig = {}) => {
+          const storageListReq = await requestGet("GetStorageList");
+          const tempFileStorageLocation =
+            storageListReq.data.StorageInfoList.find((item) => {
+              return item.EditingTempFileStorage;
+            });
+          if (!tempFileStorageLocation) {
+            throw new Error("未设置临时存储路径");
+          }
+
+          const { StorageLocation, Path } = tempFileStorageLocation;
+          // 智能生成配音会生成一个音频文件存放到接入方的 OSS 上，这里 bucket, path 和 filename 是一种命名的示例，接入方可以自定义
+          const bucket = StorageLocation.split(".")[0];
+          const path = Path;
+          const filename = `${text.slice(0, 10)}${Date.now()}`;
+          const editingConfig = voiceConfig.custom
+            ? {
+                customizedVoice: voice,
+                format: "mp3",
+                ...voiceConfig,
+              }
+            : {
+                voice,
+                format: "mp3",
+                ...voiceConfig,
+              };
+          // 1-提交智能配音任务
+          const res1 = await request("SubmitAudioProduceJob", {
+            // https://help.aliyun.com/document_detail/212273.html
+            EditingConfig: JSON.stringify(editingConfig),
+            InputConfig: text,
+            OutputConfig: JSON.stringify({
+              bucket,
+              object: `${path}${filename}`,
+            }),
+          });
+
+
+          if (res1.status !== 200) {
+            return { jobDone: false, jobError: "暂未识别当前文字内容" };
+          } else {
+            const jobId = get(res1, 'data.JobId');
+            return { jobId: jobId, jobDone: false };
+          }
+        },
+        getAudioJobResult: async (jobId) => {
+          const res = await  requestGet("GetSmartHandleJob",{
+            JobId: jobId,
+          });
+
+          const isJobDone = get(res, 'data.State') === 'Finished';
+          let isMediaReady = false;
+          let isError = get(res, 'data.State') === 'Failed';
+          let result;
+          let audioMedia;
+          let mediaId;
+          let asr = [];
+          if (res.data && res.data?.JobResult) {
+            try {
+              result = res.data.JobResult;
+              mediaId = result.MediaId;
+              if (result.AiResult) {
+                asr = JSON.parse(result.AiResult);
+              }
+            } catch (ex) {
+              console.error(ex);
             }
-          : {
-              voice,
-              format: "mp3",
-              ...voiceConfig,
-            };
-        // 1-提交智能配音任务
-        const res1 = await request("SubmitAudioProduceJob", {
-          // https://help.aliyun.com/document_detail/212273.html
-          EditingConfig: JSON.stringify(editingConfig),
-          InputConfig: text,
-          OutputConfig: JSON.stringify({
-            bucket,
-            object: `${path}${filename}`,
-          }),
-        });
-
-        if (res1.status !== 200) {
-          throw new Error("暂未识别当前文字内容");
-        }
-
-        // 2-智能配音任务是否完成【轮询】
-        const getJobStatus = () => {
-          return requestGet("GetSmartHandleJob", {
-            // https://help.aliyun.com/document_detail/203429.html
-            JobId: res1.data.JobId,
-          });
-        };
-        const shouldContinueGetJobStatus = (res) => {
-          if (res.status !== 200 || res.data.State === "Finished") return false;
-          return true;
-        };
-        const { result: res2 } = await poll(
-          getJobStatus,
-          shouldContinueGetJobStatus,
-          2000,
-          20000
-        );
-
-        // 3-智能配音任务完成则拉取生成的音频【轮询】
-        if (res2.status === 200 && res2.data.State === "Finished") {
-          const mediaId = res2.data.Output;
-
-          const getProducedAudioInfo = () => {
-            return request("GetMediaInfo", {
+          }
+          if (!mediaId && res.data && res.data.Output) {
+            mediaId = res.data.Output;
+          }
+          const defaultErrorText = '抱歉，暂未识别当前文字内容';
+          if (mediaId) {
+            const mediaRes = await request("GetMediaInfo",{
               MediaId: mediaId,
             });
-          };
-          const shouldContinueGetProducedAudioInfo = (res) => {
-            if (res.status !== 200) return false;
-            if (res.data?.MediaInfo?.MediaBasicInfo?.Status === "Normal")
-              return false;
-            return true;
-          };
-          const res3 = await poll(
-            getProducedAudioInfo,
-            shouldContinueGetProducedAudioInfo,
-            5000,
-            15000
-          );
 
-          if (res3.timeout) {
-            throw new Error("智能配音任务超时，请重新发起");
-          } else {
-            const result = transMediaList([res3.result.data.MediaInfo]); // transMediaList 同前文中的定义
-            const newAudio = result[0];
-            // 4-将新的音频素材与工程进行绑定
-            await request("AddEditingProjectMaterials", {
-              ProjectId: projectId,
-              MaterialMaps: JSON.stringify({
-                audio: newAudio.mediaId,
-              }),
-            });
-            return newAudio;
+            if (mediaRes.status !== 200) {
+              isError = true;
+            }
+            const mediaStatus = get(mediaRes, 'data.MediaInfo.MediaBasicInfo.Status');
+            if (mediaStatus === 'Normal') {
+              isMediaReady = true;
+              const transAudios =   transMediaList([get(mediaRes, 'data.MediaInfo')]);
+              audioMedia = transAudios[0];
+              if (!audioMedia) {
+                isError = true;
+              }
+            } else if (mediaStatus && mediaStatus.indexOf('Fail') >= 0) {
+              isError = true;
+            }
+          } else if (isJobDone) {
+            isError = true;
           }
-        } else {
-          throw new Error(res2.data.ErrorMsg || "抱歉，暂未识别当前文字内容");
-        }
+
+          return {
+            jobId,
+            jobDone: isJobDone && isMediaReady,
+            result: audioMedia,
+            asr,
+            jobError: isError ? defaultErrorText : undefined,
+          };
+      }
+
       },
+
       avatarConfig: {
         // 视频输出分辨率码率
 
@@ -1255,15 +1379,63 @@ export function createEditor({
             };
           }
         },
+        getAvatar: async (id) => {
+          const listRes = await requestGet("ListSmartSysAvatarModels", {
+            SdkVersion: window.AliyunVideoEditor.version,
+            PageNo: 1,
+            PageSize: 100,
+          });
+          const sysAvatar = get(
+            listRes,
+            "data.SmartSysAvatarModelList",
+            []
+          ).find((item) => {
+            return item.AvatarId === id;
+          });
+
+          if (sysAvatar) {
+            return {
+              ...objectKeyPascalCaseToCamelCase(sysAvatar),
+            };
+          }
+          const res = await requestGet("GetAvatar", { AvatarId: id });
+          const item = get(res, "data.Data.Avatar");
+          const coverListRes = await request("BatchGetMediaInfos", {
+            MediaIds: item.Portrait,
+            AdditionType: "FileInfo",
+          });
+          const mediaInfos = get(coverListRes, "data.MediaInfos");
+
+          const idCoverMapper = mediaInfos.reduce((result, m) => {
+            result[m.MediaId] = get(m, "FileInfoList[0].FileBasicInfo.FileUrl");
+            return result;
+          }, {});
+          return {
+            avatarName: item.AvatarName || "test",
+            avatarId: item.AvatarId,
+            coverUrl: idCoverMapper[item.Portrait],
+            videoUrl: undefined,
+            outputMask: false,
+            transparent: item.Transparent,
+          };
+        },
       },
-    });
-  };
+    }
+  }
+
+  const init = async () => {
+    const customVoiceGroups = await createCustomVoiceGroups();
+    const config =   initConfig(customVoiceGroups);
+     window.AliyunVideoEditor.init(config);
+ };
+
   // 打印所有事件
   // window.AliyunVideoEditor.getEvents().subscribe((ev)=>{
   //    console.log('ev>>>',ev)
   // });
   return {
     init,
+    initConfig,
     destroy() {
       window.AliyunVideoEditor.destroy();
     },
