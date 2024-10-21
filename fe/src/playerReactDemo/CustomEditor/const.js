@@ -17,7 +17,7 @@ export const MaterialTypes = {
 export const TrackMaterialTypes = {
   Effect: ["VFX", "Filter"],
   Subtitle: ["Text"],
-  Video: ["Video","Image"],
+  Video: ["Video","Image","Transition"],
   Audio: ["Audio"],
 };
 

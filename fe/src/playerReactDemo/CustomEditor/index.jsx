@@ -31,8 +31,8 @@ ConfigProvider.config({
 function createPlayer(container) {
   const player = new window.AliyunTimelinePlayer({
     licenseConfig: {
-      rootDomain: "",
-      licenseKey: "",
+       rootDomain: "",
+       licenseKey: "",
     },
     container,
     getMediaInfo: async (mediaId, mediaType, mediaOrigin) => {

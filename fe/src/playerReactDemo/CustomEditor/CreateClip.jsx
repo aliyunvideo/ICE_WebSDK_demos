@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Button, Modal, Radio, Space, Timeline } from "antd";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, message, Modal, Radio, Select, Space, Timeline } from "antd";
 import ConfigPanel from "./ConfigPanel";
 import { TrackTypes, MaterialTypes, TrackMaterialTypes } from "./const";
 import "./index.css";
 import SearchMediaModal from "../../reactDemo/SearchMediaModal";
 import { MaterialTemplate } from "./const";
+import Icon from "./icons";
 
 /**
  *
@@ -21,6 +22,8 @@ export default function CreateClip({
   const [type, setType] = useState(types[0]);
   const [showAddMedia, setShowAddMedia] = useState();
   const [showMediaSelect, setShowMediaSelect] = useState();
+  const [fromId, setFromId] = useState();
+  const [toId, setToId] = useState();
   const handleConfigUpdate = useCallback((ev) => {
     console.log("handleConfigUpdate>>>", ev);
     setValue((old) => {
@@ -32,9 +35,16 @@ export default function CreateClip({
   }, []);
 
   const handleAdd = useCallback(() => {
-    player.addClip( value);
+    if(['VFX','Filter','Transition'].includes(value.Type)){
+       if(!value.SubType){
+          message.error('请选择一个效果');
+          return;
+       }
+    }
+
+    player.addClip(value);
     onClose();
-  }, [player, value,onClose]);
+  }, [player, value, onClose]);
 
   const handleMediaClose = useCallback(() => {
     setShowAddMedia(undefined);
@@ -83,6 +93,7 @@ export default function CreateClip({
 
   useEffect(() => {
     if (MaterialTemplate[type]) {
+      setShowMediaSelect(undefined);
       const baseConfig = MaterialTemplate[type](trackId, {});
       if ("MediaId" in baseConfig) {
         setValue(undefined);
@@ -93,6 +104,59 @@ export default function CreateClip({
     }
   }, [type, trackId]);
 
+  const materialOptions = useMemo(() => {
+    const clips = player.queryClips((clip, track) => {
+      return clip.type !== "Transition" && track.id === trackId;
+    });
+    const tclips = player.queryClips((clip, track) => {
+      return clip.type === "Transition" && track.id === trackId;
+    });
+    const hasFromTrans = [];
+    const hasToTrans = [];
+    tclips.forEach((tc)=>{
+        const tconfig = player.getClip(tc.id);
+        if(tconfig){
+          if(!hasFromTrans.includes(tconfig.From)){
+            hasFromTrans.push(tconfig.From);
+          }
+          if(!hasToTrans.includes(tconfig.To)){
+            hasToTrans.push(tconfig.To);
+         }
+        }
+    });
+    if (!clips) {
+      return [];
+    }
+    return clips.map((clip,index) => {
+      return {
+        value: clip.id,
+        hasFrom: hasFromTrans.includes(clip.id) || index===clips.length-1,
+        hasTo: hasToTrans.includes(clip.id) || index===0,
+        label: (
+          <div>
+            <Icon name={clip.type?.toLowerCase()} />
+            {clip.id}
+          </div>
+        ),
+      };
+    });
+  }, [trackId, player]);
+
+  const onTransitionMaterialChange = useCallback((type, id) => {
+    if (type === "from") {
+      setValue((old)=>{
+        return {...old,From:id}
+      });
+      setFromId(id);
+    }
+    if (type === "to") {
+      setValue((old)=>{
+        return {...old,To:id}
+      });
+      setToId(id);
+    }
+  }, [trackId, player]);
+
   return (
     <>
       <Modal
@@ -102,7 +166,7 @@ export default function CreateClip({
         cancelText="取消"
         onCancel={onClose}
         width={720}
-        title="添加配置"
+        title="添加素材"
       >
         <Radio.Group
           optionType="button"
@@ -121,6 +185,34 @@ export default function CreateClip({
         <div>
           {showMediaSelect && (
             <Button onClick={handleMediaSelect}>选择媒资导入</Button>
+          )}
+          {type === "Transition" && (
+            <>
+              <Space style={{ margin: "16px 0" }}>
+                <label>转场前</label>
+                <Select
+                  value={fromId}
+                  style={{ width: "200px" }}
+                  onChange={(val) => {
+                    onTransitionMaterialChange("from", val);
+                  }}
+                  options={materialOptions.filter((item) => {
+                    return item.value !== toId && !item.hasFrom;
+                  })}
+                />
+                <label>转场后</label>
+                <Select
+                  value={toId}
+                  style={{ width: "200px" }}
+                  onChange={(val) => {
+                    onTransitionMaterialChange("to", val);
+                  }}
+                  options={materialOptions.filter((item) => {
+                    return item.value !== fromId && !item.hasTo;
+                  })}
+                />
+              </Space>
+            </>
           )}
         </div>
         {player && (

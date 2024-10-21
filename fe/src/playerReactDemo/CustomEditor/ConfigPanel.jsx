@@ -100,14 +100,14 @@ export default function ConfigPanel({ player, materialId,  value,onConfigChange 
         />
       )}
 
-      {value && value.Type === "Transation" && (
+      {value && value.Type === "Transition" && (
         <EffectConfig
           materialId={materialId}
           config={value}
           onChange={onChange}
           stageWidth={player.stageWidth}
           stageHeight={player.stageHeight}
-          effectType={"transation"}
+          effectType={"transition"}
         />
       )}
     </div>

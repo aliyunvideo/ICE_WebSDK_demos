@@ -178,6 +178,7 @@ export default function TrackPanel({player, onConfig,onAdd}) {
                             record.type === "Filter" ||
                             record.type === "VFX"
                           ) {
+
                             return clip.SubType;
                           }
 
