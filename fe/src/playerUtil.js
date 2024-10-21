@@ -188,7 +188,7 @@ export function createProjectPlayer({container,controls,minWidth,beforeMediaInfo
           return result;
         }
       }
-      const params = {
+      let params = {
          MediaId: mediaId,
          OutputType: 'cdn',
        };
@@ -198,9 +198,15 @@ export function createProjectPlayer({container,controls,minWidth,beforeMediaInfo
          delete params.MediaId;
        }
        const apiName = mediaOrigin === 'public' ? 'GetPublicMediaInfo' : 'GetMediaInfo';
-      return request(apiName, { // https://help.aliyun.com/document_detail/197842.html
-        MediaId: mediaId
-      }).then((res) => {
+
+       if(mediaOrigin === 'mediaURL'){
+         params = {
+            InputURL: mediaId,
+            OutputType: 'cdn',
+          };
+       }
+       // https://help.aliyun.com/document_detail/197842.html
+      return request(apiName,params).then((res) => {
         // 注意，这里仅作为示例，实际中建议做好错误处理，避免如 FileInfoList 为空数组时报错等异常情况
         const fileInfoList = get(res, 'data.MediaInfo.FileInfoList', []);
         let mediaUrl, maskUrl;

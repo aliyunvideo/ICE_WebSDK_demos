@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player</title>
+  <link rel="stylesheet" href="https://g.alicdn.com/thor-server/video-editing-websdk/4.13.6/player.css">
+</head>
+<body>
+  <div id="player-wrapper" style="width: 1280px;height:720px;"></div>
+  <div id="button" style="display: inline-block; border: 1px solid black; cursor: pointer;">前进5秒</div>
+  <script src="https://g.alicdn.com/thor-server/video-editing-websdk/4.13.6/player.js"></script>
+  <script>
+    const player = new window.AliyunTimelinePlayer({
+      container: document.querySelector('#player-wrapper'),
+      timeline: {
+        "VideoTracks": [
+          {
+            "Id": 0,
+            "Type": "Video",
+            "Visible": true,
+            "Count": 1,
+            "VideoTrackClips": [
+              {
+                "Type": "Video",
+                "Id": 1,
+                "TrackId": 0,
+                "MediaId": "02221f97802947ecbffee7eb8cd85d20",
+                "Title": "最美中国纪录片-智能字幕.m3u8",
+                "In": 0,
+                "Out": 14.023,
+                "X": 0,
+                "Y": 0,
+                "Width": 1,
+                "Height": 1,
+                "TimelineIn": 0,
+                "TimelineOut": 14.023,
+                "Duration": 14.023,
+                "VirginDuration": 14.023,
+                "AdaptMode":"Contain"
+              }
+            ]
+          }
+        ],
+        "AudioTracks": [],
+        "AspectRatio": "16:9"
+      },
+      getMediaInfo: (mediaId) => {
+        return Promise.resolve('https://creative-di-tf.oss-cn-beijing.aliyuncs.com/timeline/material/05fa27e8-dcef-489c-9d67-bc6ee473c14f/video/a122006d-667c-4f7e-a3f4-c4ce4fb6233f.m3u8');
+      }
+    });
+    const button = document.querySelector('#button');
+    button.addEventListener('click', () => {
+      player.currentTime = player.currentTime + 5;
+    });
+  </script>
+</body>
+</html>

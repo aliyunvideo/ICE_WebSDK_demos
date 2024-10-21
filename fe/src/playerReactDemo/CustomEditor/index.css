@@ -1,0 +1,80 @@
+
+
+.track {
+  display: flex;
+}
+
+.track .materials {
+  display: flex;
+}
+
+.track .materials .material {
+  padding: 10px;
+  background: #efefef;
+  border-radius: 10px;
+  margin: 10px;
+}
+
+.player-panel {
+  height: 720px;
+  display: flex;
+  width: 100%;
+  padding: 16px;
+}
+
+.player-panel .player {
+  width: 50%;
+  flex:1;
+}
+
+.player-panel .config {
+  width: 50%;
+  flex:1;
+  outline: 1px solid #dedede;
+  margin-left: 16px;
+  padding: 16px;
+}
+
+.cover-container{
+  width: 100%;
+  height: 600px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.subtitle-cover {
+  max-height: 80px;
+  cursor: pointer;
+}
+.subtitle-cover img.active{
+  border: 3px solid #1677ff;
+}
+
+.subtitle-cover  img{
+  background: #252b2b;
+  width: 100%;
+  object-fit: contain;
+  object-position: center center;
+  height: 100%;
+}
+
+.subtitle-effect{
+   border: 1px solid #dedede;
+   padding: 16px 16px ;
+   margin-bottom: 16px;
+   box-sizing: border-box;
+}
+.subtitle-effect .title{
+  margin: 8px 0;
+}
+.subtitle-effect .title label{
+  margin-left: 8px;
+}
+
+
+.subtitle-cover.effect-cover  img{
+  background: transparent;
+  width: 100%;
+  object-fit: contain;
+  object-position: center center;
+  height: 100%;
+}

@@ -175,21 +175,10 @@ export async function createCustomVoiceGroups() {
 }
 
 export function craeteCustomFontList(customFontList = []) {
-  const FONT_FAMILIES = [
-    "alibaba-sans", // 阿里巴巴普惠体
-    "fangsong", // 仿宋字体
-    "kaiti", // 楷体
-    "SimSun", // 宋体
-    "siyuan-heiti", // 思源黑体
-    "siyuan-songti", // 思源宋体
-    "wqy-zenhei-mono", // 文泉驿等宽正黑
-    "wqy-zenhei-sharp", // 文泉驿点阵正黑
-    "wqy-microhei", // 文泉驿微米黑
-    "zcool-gaoduanhei", // 站酷高端黑体
-    "zcool-kuaile", // 站酷快乐体
-    "zcool-wenyiti", // 站酷文艺体
-  ];
-  return FONT_FAMILIES.concat(customFontList);
+
+  return [()=>{
+    return true
+  },...customFontList];
 }
 
 export function createTemplateFetcher(templateId, message) {
@@ -319,6 +308,15 @@ export function createTemplateFetcher(templateId, message) {
       }
     },
   };
+}
+
+export async function getTempFileLocation(){
+  const storageListReq = await requestGet("GetStorageList");
+  const tempFileStorageLocation =
+    storageListReq.data.StorageInfoList.find((item) => {
+      return item.EditingTempFileStorage;
+    });
+  return tempFileStorageLocation;
 }
 
 export function createEditor({
@@ -1420,6 +1418,308 @@ export function createEditor({
           };
         },
       },
+
+      videoTranslation: {
+        translation: {
+          submitVideoTranslationJob: async (params) => {
+            const tempFileStorageLocation = await  getTempFileLocation();
+
+            if (!tempFileStorageLocation) {
+              return {
+                jobDone: false,
+                jobError:  '请设置临时存储地址' ,
+              };
+            }
+            const item = tempFileStorageLocation;
+            const path = item.Path;
+            if (params.editingConfig.SourceLanguage !== 'zh') {
+              return {
+                jobDone: false,
+                jobError: '当前仅支持对中文的翻译' ,
+              };
+            }
+            if (params.type === 'Video') {
+              const storageType = item.StorageType;
+
+              let outputConfig = {
+                MediaURL: `https://${item.StorageLocation}/${path}videoTranslation-${params.mediaId}.mp4`,
+              };
+
+              if (storageType === 'vod_oss_bucket') {
+                outputConfig = {
+                  OutputTarget: 'vod',
+                  StorageLocation: get(item, 'StorageLocation'),
+                  FileName: `videoTranslation-${params.mediaId}.mp4`,
+                  TemplateGroupId: 'VOD_NO_TRANSCODE',
+                };
+              }
+
+              const res = await request("SubmitVideoTranslationJob",{
+                InputConfig: JSON.stringify({
+                  Type: params.type,
+                  Media: params.mediaId,
+                }),
+                OutputConfig: JSON.stringify(outputConfig),
+                EditingConfig: JSON.stringify(params.editingConfig),
+              });
+
+              return {
+                jobDone: false,
+                jobId: res.data.Data.JobId,
+              };
+            }
+            if (params.type === 'Text') {
+              const res = await request("SubmitVideoTranslationJob",{
+                InputConfig: JSON.stringify({
+                  Type: params.type,
+                  Text: params.text,
+                }),
+                EditingConfig: JSON.stringify(params.editingConfig),
+              });
+              return {
+                jobDone: false,
+                jobId: res.data.Data.JobId,
+              };
+            }
+            if (params.type === 'TextArray') {
+              const res = await request("SubmitVideoTranslationJob",{
+                InputConfig: JSON.stringify({
+                  Type: params.type,
+                  TextArray: JSON.stringify(params.textArray),
+                }),
+                EditingConfig: JSON.stringify(params.editingConfig),
+              });
+              return {
+                jobDone: false,
+                jobId: res.data.Data.JobId,
+              };
+            }
+            return {
+              jobDone: false,
+              jobError: 'not match type',
+            };
+          },
+          getVideoTranslationJob: async (jobId) => {
+            const resp = await   request("GetSmartHandleJob",{
+              JobId: jobId,
+            });
+
+            const res = resp.data;
+
+            if (res.State === 'Executing' || res.State === 'Created') {
+              return {
+                jobDone: false,
+                jobId,
+              };
+            }
+
+            if (res.State === 'Failed') {
+              return {
+                jobDone: true,
+                jobId,
+                jobError:  '任务执行失败' ,
+              };
+            }
+
+            let isJobDone = true;
+            let text;
+            let textArray;
+            let timeline;
+            let jobError;
+
+            if (res.JobResult.AiResult) {
+              const aiResult = JSON.parse(res.JobResult.AiResult);
+              const projectId1 = aiResult.EditingProjectId;
+              if (projectId1) {
+                const projectRes = await request('GetEditingProject',{
+                  ProjectId: projectId1,
+                  RequestSource: 'WebSDK',
+                });
+                const timelineConvertStatus = get(projectRes, 'data.Project.TimelineConvertStatus');
+                if (timelineConvertStatus === 'ConvertFailed') {
+                  jobError =  '任务执行失败';
+                } else if (timelineConvertStatus === 'Converted') {
+                  isJobDone = true;
+                } else {
+                  isJobDone = false;
+                }
+                timeline = projectRes.data.Project.Timeline;
+              }
+              text = JSON.parse(res.JobResult.AiResult).TranslatedText;
+              textArray = JSON.parse(res.JobResult.AiResult).TranslatedTextArray;
+            }
+
+            return {
+              jobDone: isJobDone,
+              jobError,
+              jobId,
+              result: {
+                text,
+                textArray,
+                timeline,
+              },
+            };
+          },
+        },
+        detext: {
+          submitDetextJob: async ({ mediaId, mediaIdType, box }) => {
+            const tempFileStorageLocation = await getTempFileLocation();
+
+            if (!tempFileStorageLocation) {
+              return {
+                jobDone: false,
+                jobError:  '请设置临时存储地址' ,
+              };
+            }
+            const item = tempFileStorageLocation;
+            const path = item.Path;
+            const res = await request("SubmitIProductionJob",{
+              FunctionName: 'VideoDetext',
+              Input: JSON.stringify({
+                Type: mediaIdType === 'mediaURL' ? 'OSS' : 'Media',
+                Media: mediaId,
+              }),
+              Output: JSON.stringify({
+                Type: 'OSS',
+                Media: `https://${item.StorageLocation}/${path}VideoDetext-${mediaId}.mp4`,
+              }),
+              JobParams:
+                box && box !== 'auto'
+                  ? JSON.stringify({
+                      Boxes: JSON.stringify(box),
+                    })
+                  : undefined,
+            });
+            return {
+              jobDone: false,
+              jobId: res.data.JobId,
+            };
+          },
+          getDetextJob: async (jobId) => {
+            const resp = await request("QueryIProductionJob",{ JobId: jobId });
+            const res = resp.data;
+            if (res.Status === 'Queuing' || res.Status === 'Analysing') {
+              return {
+                jobDone: false,
+                jobId,
+              };
+            }
+
+            if (res.Status === 'Fail') {
+              return {
+                jobDone: true,
+                jobId,
+                jobError: intl.get('job_error').d('任务执行失败'),
+              };
+            }
+            const mediaUrl = resp.data.Output.Media;
+            const mediaInfoRes = await request("GetMediaInfo",{ InputURL: mediaUrl });
+            if (mediaInfoRes.code !== '200') {
+              await request("RegisterMediaInfo",{ InputURL: mediaUrl });
+              return {
+                jobDone: false,
+                jobId,
+              };
+            }
+
+            const mediaStatus = get(mediaInfoRes, 'data.MediaInfo.MediaBasicInfo.Status');
+            let isError = false;
+            let isMediaReady = false;
+            let inputVideo;
+            if (mediaStatus === 'Normal') {
+              const transVideo = transMediaList([get(mediaInfoRes, 'data.MediaInfo')]);
+              inputVideo = transVideo[0];
+              isMediaReady = true;
+              if (!inputVideo) {
+                isError = true;
+              }
+            } else if (mediaStatus && mediaStatus.indexOf('Fail') >= 0) {
+              isError = true;
+            }
+
+            return {
+              jobDone: isMediaReady,
+              jobError: isError ? '任务执行失败'  : undefined,
+              jobId: res.JobId,
+              result: {
+                video: inputVideo,
+              },
+            };
+          },
+        },
+        captionExtraction: {
+          submitCaptionExtractionJob: async ({ mediaId, mediaIdType, box }) => {
+            const tempFileStorageLocation = await  getTempFileLocation();
+            if (!tempFileStorageLocation) {
+              return {
+                jobDone: false,
+                jobError:  '请选择临时存储地址' ,
+              };
+            }
+            const item = tempFileStorageLocation;
+            const path = item.Path;
+            let roi;
+            if (Array.isArray(box) && box.length > 0 && box[0] && box[0].length === 4) {
+              const [x, y, width, height] = box[0];
+              roi = [
+                [y, y + height],
+                [x, x + width],
+              ];
+            }
+            const res = await request('SubmitIProductionJob',{
+              FunctionName: 'CaptionExtraction',
+              Input: JSON.stringify({
+                Type: mediaIdType === 'mediaURL' ? 'OSS' : 'Media',
+                Media: mediaId,
+              }),
+              Output: JSON.stringify({
+                Type: 'OSS',
+                Media: `https://${item.StorageLocation}/${path}CaptionExtraction-${mediaId}.srt`,
+              }),
+              JobParams:
+                box && box !== 'auto'
+                  ? JSON.stringify({
+                      roi: roi,
+                    })
+                  : undefined,
+            });
+
+            return {
+              jobDone: false,
+              jobId: res.data.JobId,
+            };
+          },
+          getCaptionExtractionJob: async (jobId) => {
+            const resp = await request('QueryIProductionJob',{ JobId: jobId });
+            const res = resp.data;
+            if (res.Status === 'Queuing' || res.Status === 'Analysing') {
+              return {
+                jobDone: false,
+                jobId,
+              };
+            }
+
+            if (res.Status === 'Fail') {
+              return {
+                jobDone: true,
+                jobId,
+                jobError:  '任务执行失败',
+              };
+            }
+            const mediaUrl = resp.data.OutputUrls[0];
+            const srtRes = await fetch(mediaUrl.replace('http:', ''));
+            const srtText = await srtRes.text();
+
+            return {
+              jobDone: true,
+              jobId: res.JobId,
+              result: {
+                srtContent: srtText,
+              },
+            };
+          },
+        },
+      }
     }
   }
 
