@@ -1,18 +1,11 @@
 import { get } from "lodash";
-import React, {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {useParams} from "react-router";
 import { request } from "../../utils";
-import {
-  ConfigProvider,
-} from "antd";
+import { Button, ConfigProvider, message, Space } from "antd";
 
-import TrackPanel from './TrackPanel';
-import ConfigPanel from './ConfigPanel';
+import TrackPanel from "./TrackPanel";
+import ConfigPanel from "./ConfigPanel";
 
 import "./index.css";
 import CreateClip from "./CreateClip";
@@ -20,8 +13,6 @@ import CreateClip from "./CreateClip";
 /**
  * @typedef {import('../../../types/player').default} AliyunTimelinePlayer
  */
-
-
 
 ConfigProvider.config({
   prefixCls: "biz-ant",
@@ -31,8 +22,8 @@ ConfigProvider.config({
 function createPlayer(container) {
   const player = new window.AliyunTimelinePlayer({
     licenseConfig: {
-       rootDomain: "",
-       licenseKey: "",
+      rootDomain: "",
+      licenseKey: "",
     },
     container,
     getMediaInfo: async (mediaId, mediaType, mediaOrigin) => {
@@ -91,16 +82,14 @@ function createPlayer(container) {
   return player;
 }
 
-
-
-
-
 export default function App() {
   const [player, setPlayer] = useState();
   const [materialId, setMaterialId] = useState();
-  const [createConfig,setCreateConfig] = useState();
+  const [createConfig, setCreateConfig] = useState();
   const [config, setConfig] = useState();
   const containerRef = useRef(null);
+  const params = useParams();
+  const {projectId} = params;
 
   useEffect(() => {
     if (!containerRef.current) {
@@ -119,7 +108,7 @@ export default function App() {
       return;
     }
     const unWatch = player.watchClip(materialId, (vConfig) => {
-      console.log('watchClip',materialId,vConfig);
+      console.log("watchClip", materialId, vConfig);
       setConfig(vConfig);
     });
     return () => {
@@ -127,13 +116,33 @@ export default function App() {
     };
   }, [player, materialId]);
 
-  const handleCloseClip = useCallback(()=>{
+  const handleCloseClip = useCallback(() => {
     setCreateConfig(undefined);
-  },[]);
+  }, []);
+
+  const handleSave = useCallback(async ()=>{
+    if (!player || projectId === undefined) {
+      return;
+    }
+    const {duration,timeline} = player.toBackendTimeline();
+     await request("UpdateEditingProject", {
+      ProjectId: projectId,
+      Duration: duration,
+      Timeline: JSON.stringify(timeline),
+    }) ;
+    message.success("保存成功");
+  },[projectId,player]);
+
 
   return (
     <ConfigProvider prefixCls="biz-ant" iconPrefixCls="biz-anticon">
       <div>
+        <div className="header">
+          <Space>
+            <Button onClick={handleSave} type="primary">保存</Button>
+            <Button type="primary">合成</Button>
+          </Space>
+        </div>
         <div className="player-panel">
           <div className="player" ref={containerRef} />
 
@@ -143,16 +152,23 @@ export default function App() {
               materialId={materialId}
               value={config}
             />
-            {createConfig && <CreateClip player={player} onClose={handleCloseClip} {...createConfig}  />}
+            {createConfig && (
+              <CreateClip
+                player={player}
+                onClose={handleCloseClip}
+                {...createConfig}
+              />
+            )}
           </div>
         </div>
         {player && (
           <TrackPanel
+            projectId={projectId}
             player={player}
             onConfig={(mat) => {
               setMaterialId(mat.id);
             }}
-            onAdd={(data)=>{
+            onAdd={(data) => {
               setCreateConfig(data);
             }}
           />

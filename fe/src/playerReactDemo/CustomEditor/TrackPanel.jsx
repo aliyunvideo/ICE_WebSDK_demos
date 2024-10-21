@@ -1,4 +1,4 @@
-import {useParams} from "react-router";
+
 import React, {useCallback, useEffect, useState} from "react";
 import {request} from "../../utils";
 import {Table, Tabs, Space, Switch, InputNumber, Modal, Select, Radio, Button} from "antd";
@@ -15,12 +15,11 @@ import "./index.css";
  *
  * @param {{player: AliyunTimelinePlayer}} param0
  */
-export default function TrackPanel({player, onConfig,onAdd}) {
+export default function TrackPanel({player, onConfig,onAdd,projectId}) {
   const [tracks, setTracks] = useState([]);
   const [timelineJson, setTimelineJson] = useState();
   const [activeTrack, setActiveTrack] = useState();
-  const params = useParams();
-  const {projectId} = params;
+
 
   useEffect(() => {
     player.watchTrack((tItems) => {
@@ -29,6 +28,9 @@ export default function TrackPanel({player, onConfig,onAdd}) {
   }, [player]);
 
   const fetchData = useCallback(async () => {
+    if(!projectId){
+      return;
+    }
     const res = await request("GetEditingProject", {
       // https://help.aliyun.com/document_detail/197837.html
       ProjectId: projectId,
@@ -41,7 +43,7 @@ export default function TrackPanel({player, onConfig,onAdd}) {
     }
     const timeineInfo = JSON.parse(res.data.Project.Timeline);
     setTimelineJson(timeineInfo);
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     fetchData();

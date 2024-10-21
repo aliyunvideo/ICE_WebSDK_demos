@@ -110,6 +110,7 @@ export default function ConfigPanel({ player, materialId,  value,onConfigChange 
           effectType={"transition"}
         />
       )}
+      {!value && <div style={{margin:'30px auto',fontSize:18,textAlign:'center'}} >未选中素材</div>}
     </div>
   );
 }

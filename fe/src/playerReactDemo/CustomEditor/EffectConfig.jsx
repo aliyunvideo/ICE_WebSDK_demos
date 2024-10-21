@@ -26,7 +26,7 @@ export  function CommonEffectConfig({
   return (
     <div className="cover-container">
     <Row gutter={[24, 24]}>
-      {effectItems.map(({ subType:_subType, cover }) => {
+      {effectItems.map(({ subType:_subType, cover ,title}) => {
         return (
           <Col
             className={`subtitle-cover effect-cover`}
@@ -35,7 +35,7 @@ export  function CommonEffectConfig({
               onChange({ SubType:_subType,ExtParams: undefined});
             }}
           >
-            {
+
               <img
                 className={
                   _subType === subType ? "active" : undefined
@@ -43,7 +43,8 @@ export  function CommonEffectConfig({
                 src={cover}
                 key={_subType}
               />
-            }
+              <div>{title}</div>
+
           </Col>
         );
       })}

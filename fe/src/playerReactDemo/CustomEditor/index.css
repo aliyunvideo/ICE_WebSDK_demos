@@ -1,4 +1,9 @@
 
+.header{
+  padding: 8px 16px;
+  border: 1px solid #efefef;
+  text-align: right;
+}
 
 .track {
   display: flex;
