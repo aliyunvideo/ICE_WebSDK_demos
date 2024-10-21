@@ -140,7 +140,6 @@ export default function App() {
         <div className="header">
           <Space>
             <Button onClick={handleSave} type="primary">保存</Button>
-            <Button type="primary">合成</Button>
           </Space>
         </div>
         <div className="player-panel">

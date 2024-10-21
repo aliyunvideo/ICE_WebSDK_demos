@@ -1,4 +1,4 @@
-import { CustomFontItem, PlayerInitConfig, IObservable, RangeAreaInitOption, ExportTrack, RangeAreaItem, ExportClip } from './globalInterface';
+import { CustomFontItem, PlayerInitConfig, IObservable, RangeAreaInitOption, ExportTrack, RangeAreaItem, ExportClip, Locales } from './globalInterface';
 import { EventData } from './eventManager';
 import { IServerTimeline, ServerTimelineAdapter, ParsedResult, ServerClips, ServerClip } from './timelinePlayerUtil';
 declare class AliyunTimelinePlayer {
@@ -11,6 +11,7 @@ declare class AliyunTimelinePlayer {
         key: string;
         cover: string;
     }>;
+    static setDefaultLocale(locale?: Locales): void;
     static getDefaultFontList(): CustomFontItem[];
     static getVideoEffects(): Array<{
         subType: string;
@@ -73,17 +74,18 @@ declare class AliyunTimelinePlayer {
     loadAllFont(): Promise<boolean[]>;
     importSubtitles(type: 'ass' | 'srt' | 'clip' | 'asr', config: string): void;
     submitAiJob(id: number): Promise<void>;
-    setCurrentTime(time: number): Promise<unknown>;
     watchTrack(handler?: (tracks: ExportTrack[]) => void): () => void;
     removeTrack(id: number): void;
     setTrack(id: number, options: {
         visible?: boolean;
         mainTrack?: boolean;
     }): void;
-    addTrack(id: number, track: Omit<ExportTrack, 'clips'>): void;
+    addTrack(track: Omit<ExportTrack, 'clips'>, options?: {
+        insertIndex?: number;
+    }): void;
     removeClip(id: number): void;
     getClip<T extends keyof ServerClips>(id: number): any;
-    addClip<T extends keyof ServerClips>(id: number, trackId: number, clip: ServerClip<T>): void;
+    addClip<T extends keyof ServerClips>(clip: ServerClip<T>): void;
     setClipTimelineIn(id: number, timelineIn: number): void;
     setClipTimelineOut(id: number, timelineOut: number): void;
     updateClip<T extends keyof ServerClips>(id: number, handle: (clip: ServerClip<T>) => ServerClip<T>): void;
@@ -93,9 +95,9 @@ declare class AliyunTimelinePlayer {
         timeline: any;
     };
     queryTracks(handler: (track: ExportTrack) => boolean): ExportTrack[];
-    queryClips(handler: (clip: ExportClip) => boolean): ExportClip[];
-    focusClip(id: number): void;
-    blurClip(id: number): void;
+    queryClips(handler: (clip: ExportClip, track: ExportTrack) => boolean): ExportClip[];
+    focusClip(id: number, autoSeek?: boolean): void;
+    blurClip(): void;
     createRangeArea(optons: RangeAreaInitOption): RangeAreaItem | null;
 }
 declare const playerExport: typeof AliyunTimelinePlayer;
