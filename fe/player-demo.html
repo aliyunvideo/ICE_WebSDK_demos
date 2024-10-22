@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://dev.g.alicdn.com/thor-server/video-editing-websdk/5.2.2/player.css"
+    />
+    <script src="https://dev.g.alicdn.com/thor-server/video-editing-websdk/5.2.2/player.js"></script>
+    <title>云剪预览播放器</title>
+  </head>
+
+  <body>
+    <div id="root" style="width: 820px;margin: 30px auto;" >
+      <div id="player" style="width: 800px; height: 450px"></div>
+      <div style="margin-top: 16px">
+        <div>
+          <label>ID</label>   <br/>
+          <input id="subtitle" value="123" />
+          <br/>
+          <label>内容</label>   <br/>
+          <textarea id="content"  rows="4" >自定义编辑字幕</textarea>
+        </div>
+
+        <button id="addSubtitle">添加字幕</button>
+        <button id="updateSubtitle">修改字幕</button>
+        <button id="moveSubtitle">移动字幕</button>
+        <button id="removeSubtitle">删除字幕</button>
+      </div>
+    </div>
+    <script type="text/javascript">
+      const timelineDemo = {
+        Version: 1,
+        SdkVersion: "4.12.2",
+        VideoTracks: [
+          {
+            // 视频轨道
+            Id: 1,
+            Type: "Video",
+            Visible: true,
+            Disabled: false,
+            Count: 1,
+            VideoTrackClips: [
+              {
+                // 图片
+                Id: 3,
+                TrackId: 1,
+                Type: "Image",
+                MediaURL:
+                  "https://img.alicdn.com/imgextra/i4/O1CN01TDN7Gw1SCgVv61T4s_!!6000000002211-0-tps-1920-1046.jpg",
+                Title: "test.png",
+                X: 0,
+                Y: 0,
+                Width: 1,
+                Height: 1,
+                TimelineIn: 0,
+                TimelineOut: 5,
+                Duration: 5,
+                VirginDuration: 5,
+              },
+              {
+                // 视频
+                Id: 4,
+                TrackId: 1,
+                Type: "Video",
+                MediaURL:
+                  "https://ice-pub-media.myalicdn.com/vod-demo/%E6%9C%80%E7%BE%8E%E4%B8%AD%E5%9B%BD%E7%BA%AA%E5%BD%95%E7%89%87-%E6%99%BA%E8%83%BD%E5%AD%97%E5%B9%95.mp4",
+                X: 0,
+                Y: 0,
+                Width: 1,
+                Height: 1,
+                TimelineIn: 4, // 转场的入点(TimelineIn)需要在上一个片段出点(TimelineOut)以前
+                TimelineOut: 9,
+                Duration: 5,
+                VirginDuration: 5,
+                Effects: [
+                  {
+                    // 转场
+                    Type: "Transition",
+                    Id: 13,
+                    Name: "transitions.directional",
+                    SubType: "directional",
+                    Duration: 1, // 转场时长=上一个片段出点(TimelineOut)-这个片段的入点(TimelineIn)
+                    From: 3, // 上一个片段的ID
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            // 特效轨道
+            Id: 2,
+            Type: "Effect",
+            Visible: true,
+            Disabled: false,
+            Count: 1,
+            VideoTrackClips: [
+              {
+                Type: "VFX",
+                Id: 2,
+                TrackId: 1,
+                SubType: "heartfireworks",
+                TimelineIn: 0,
+                TimelineOut: 5,
+                Duration: 5,
+                X: 0,
+                Y: 0,
+                Width: 0,
+                Height: 0,
+              },
+            ],
+          },
+        ],
+        AudioTracks: [],
+        SubtitleTracks: [
+          {
+            Id: 2,
+            Type: "Text",
+            Visible: true,
+            Disabled: false,
+            Count: 1,
+            SubtitleTrackClips: [
+              {
+                Id: 1,
+                TrackId: 2,
+                Type: "Text",
+                X: 0,
+                Y: 0,
+                TimelineIn: 0,
+                TimelineOut: 2,
+                Duration: 2,
+                VirginDuration: 2,
+                FontSize: 30,
+                FontColor: "#333333",
+                FontColorOpacity: 1,
+                Content: "FontUrl自定义字体",
+                Alignment: "BottomCenter",
+                // 自定义字体
+                FontUrl:
+                  "https://ice-pub-media.myalicdn.com/mts-fonts/%E7%AB%99%E9%85%B7%E6%96%87%E8%89%BA%E4%BD%93.ttf",
+              },
+            ],
+          },
+        ],
+        AspectRatio: "16:9",
+        From: "websdk",
+        FECanvas: {
+          Width: 800,
+          Height: 450,
+        },
+        FEConfig: {
+          AutoProportion: "681:383",
+        },
+      };
+
+
+      const player = new window.AliyunTimelinePlayer({
+        container: document.getElementById("player"),
+        getMediaInfo: async (mediaId, mediaType, mediaOri) => {
+          console.log(">>>", mediaId, mediaType, mediaOri);
+          // 如果直接是mediaUrl的timeline，公网可访问，直接返回预览地址就可以
+          return mediaId;
+          /**
+           * // 动态请求地址参考如下代码
+           *     if (mediaType === "font") {
+        params.InputURL = InputURL;
+        delete params.MediaId;
+      }
+      if (mediaOrigin === "mediaURL") {
+        params.InputURL = mediaId;
+        delete params.MediaId;
+      }
+
+      const apiName =
+        mediaOrigin === "public" ? "GetPublicMediaInfo" : "GetMediaInfo";
+      return request(apiName, {
+        // https://help.aliyun.com/document_detail/197842.html
+        MediaId: mediaId,
+      })
+        .then((res) => {
+          // 注意，这里仅作为示例，实际中建议做好错误处理，避免如 FileInfoList 为空数组时报错等异常情况
+          const fileInfoList = get(res, "data.MediaInfo.FileInfoList", []);
+          let mediaUrl, maskUrl;
+          let sourceFile = fileInfoList.find((item) => {
+            return item?.FileBasicInfo?.FileType === "source_file";
+          });
+          if (!sourceFile) {
+            sourceFile = fileInfoList[0];
+          }
+          const maskFile = fileInfoList.find((item) => {
+            return (
+              item.FileBasicInfo &&
+              item.FileBasicInfo.FileUrl &&
+              item.FileBasicInfo.FileUrl.indexOf("_mask") > 0
+            );
+          });
+          if (maskFile) {
+            maskUrl = get(maskFile, "FileBasicInfo.FileUrl");
+          }
+          mediaUrl = get(sourceFile, "FileBasicInfo.FileUrl");
+          const codec = get(sourceFile, "VideoStreamInfoList[0].CodecName");
+
+          return {
+            url: mediaUrl,
+            codec,
+            maskUrl,
+          };
+        })
+        .catch((ex) => {
+          // 外链地址兜底逻辑
+          if (mediaOrigin === "mediaURL") {
+            return mediaId;
+          }
+        });
+           *
+           * **/
+        },
+      });
+
+      // 预览前端Timeline,setTimeline方法会自动解析MediaUrl和字体文件
+      player.setTimeline(timelineDemo);
+      // 可以通过toBackendTimeline转换为后端Timeline
+      console.log("toBackendTimeline", player.toBackendTimeline());
+
+      document.getElementById("addSubtitle").addEventListener("click", () => {
+        player.addClip({
+          Id: Number(document.getElementById('subtitle').value),
+          TrackId: 2,
+          Type: "Text",
+          X: 0,
+          Y: 0,
+          TimelineIn: player.currentTime,
+          TimelineOut: player.currentTime+2,
+          Duration: 2,
+          VirginDuration: 2,
+          FontSize: 30,
+          FontColor: "#333333",
+          FontColorOpacity: 1,
+          Content: document.getElementById('content').value,
+          Alignment: "TopCenter",
+          // 自定义字体
+          FontUrl:
+            "https://ice-pub-media.myalicdn.com/mts-fonts/%E7%AB%99%E9%85%B7%E6%96%87%E8%89%BA%E4%BD%93.ttf",
+        });
+      });
+      document.getElementById("updateSubtitle").addEventListener("click", () => {
+        player.updateClip(Number(document.getElementById('subtitle').value),(item)=>{
+          return Object.assign({},item,{Content: document.getElementById('content').value})
+        });
+      });
+      document.getElementById("moveSubtitle").addEventListener("click", () => {
+        player.focusClip( Number(document.getElementById('subtitle').value));
+      });
+      document.getElementById("removeSubtitle").addEventListener("click", () => {
+        player.blurClip();
+        player.removeClip( Number(document.getElementById('subtitle').value));
+      });
+      // 监听轨道变化
+      player.watchTrack((tracks)=>{
+         console.log('timeline变化:');
+         console.log(JSON.stringify(tracks,null,4));
+      });
+    </script>
+  </body>
+</html>

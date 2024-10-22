@@ -74,7 +74,7 @@ function ProjectList() {
                 <Button style={{marginRight: '10px'}} >编辑</Button>
               </Link>
               <Link to={`/home/player/${ item.ProjectId }`}   >
-              <Button style={{marginLeft: '10px'}}   >预览</Button>
+              <Button style={{marginLeft: '10px'}}   >自定义编辑(预览组件)</Button>
               </Link>
             </div>
           </List.Item>

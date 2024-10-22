@@ -15,46 +15,10 @@ import "./index.css";
  *
  * @param {{player: AliyunTimelinePlayer}} param0
  */
-export default function TrackPanel({player, onConfig,onAdd,projectId}) {
-  const [tracks, setTracks] = useState([]);
-  const [timelineJson, setTimelineJson] = useState();
+export default function TrackPanel({player, onConfig,onAdd,tracks}) {
+
+
   const [activeTrack, setActiveTrack] = useState();
-
-
-  useEffect(() => {
-    player.watchTrack((tItems) => {
-      setTracks(tItems);
-    });
-  }, [player]);
-
-  const fetchData = useCallback(async () => {
-    if(!projectId){
-      return;
-    }
-    const res = await request("GetEditingProject", {
-      // https://help.aliyun.com/document_detail/197837.html
-      ProjectId: projectId,
-      RequestSource: "WebSDK",
-    });
-
-    if (!res.data.Project.Timeline) {
-      alert("Timeline数据为空");
-      return;
-    }
-    const timeineInfo = JSON.parse(res.data.Project.Timeline);
-    setTimelineJson(timeineInfo);
-  }, [projectId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (!timelineJson) {
-      return;
-    }
-    player.setTimeline(timelineJson);
-  }, [player, timelineJson]);
 
   const deleteMaterial = useCallback(
     (id) => {
@@ -158,6 +122,7 @@ export default function TrackPanel({player, onConfig,onAdd,projectId}) {
                     }} >添加</Button>
                   </Space>
                   <Table
+                    key={'id'}
                     dataSource={track.clips}
                     columns={[
                       {dataIndex: "id", title: "id"},

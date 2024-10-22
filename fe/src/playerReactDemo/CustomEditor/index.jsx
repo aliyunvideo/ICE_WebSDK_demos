@@ -2,8 +2,11 @@ import { get } from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {useParams} from "react-router";
 import { request } from "../../utils";
-import { Button, ConfigProvider, message, Space } from "antd";
-
+import { Button, ConfigProvider, message, Slider, Space } from "antd";
+import {
+  PlayCircleFilled,
+  PauseCircleFilled
+} from "@ant-design/icons";
 import TrackPanel from "./TrackPanel";
 import ConfigPanel from "./ConfigPanel";
 
@@ -18,13 +21,18 @@ ConfigProvider.config({
   prefixCls: "biz-ant",
   iconPrefixCls: "biz-anticon",
 });
-
+/**
+ *
+ * @param {*} container
+ * @returns {AliyunTimelinePlayer}
+ */
 function createPlayer(container) {
   const player = new window.AliyunTimelinePlayer({
     licenseConfig: {
       rootDomain: "",
       licenseKey: "",
     },
+    mode:"component",
     container,
     getMediaInfo: async (mediaId, mediaType, mediaOrigin) => {
       if (mediaType === "font") {
@@ -87,6 +95,11 @@ export default function App() {
   const [materialId, setMaterialId] = useState();
   const [createConfig, setCreateConfig] = useState();
   const [config, setConfig] = useState();
+  const [tracks, setTracks] = useState([]);
+  const [timelineJson, setTimelineJson] = useState();
+  const [duration,setDuration] = useState(0);
+  const [currentTime,setCurrentTime] = useState(0);
+  const [playing,setPlaying] = useState(false);
   const containerRef = useRef(null);
   const params = useParams();
   const {projectId} = params;
@@ -97,11 +110,77 @@ export default function App() {
     }
     const newPlayer = createPlayer(containerRef.current);
     setPlayer(newPlayer);
+    newPlayer.event$.subscribe((ev)=>{
+       if(ev.type === 'render'){
+            setCurrentTime(newPlayer.currentTime);
+       }
+       if(ev.type ==='playerStateChange'){
+          if(ev.data.state !== 'playing'){
+             setPlaying(false);
+          }
+       }
 
+    })
     return () => {
       newPlayer.destroy();
     };
   }, []);
+
+  const [aspectRatio,setAspectRatio] = useState('16:9');
+
+  useEffect(()=>{
+
+     if(aspectRatio && aspectRatio.indexOf(':')>0){
+      const [w,h] = aspectRatio.split(':');
+      containerRef.current.style.aspectRatio =  `${Number(w).toFixed(0)}/${Number(h).toFixed(0)}`;
+      const ratio = Number(w)/Number(h);
+      containerRef.current.style.width = ratio>1?'100%':`auto`;
+      containerRef.current.style.height = ratio<1?'100%':`auto`;
+     }
+  },[aspectRatio,containerRef]);
+
+  useEffect(() => {
+    if(player){
+     player.watchTrack((tItems) => {
+       setTracks(tItems);
+       setAspectRatio(player.aspectRatio);
+       setDuration(player.duration);
+     });
+     setAspectRatio(player.aspectRatio);
+     setDuration(player.duration);
+   }
+  }, [player]);
+
+  const fetchData = useCallback(async () => {
+    if(!projectId){
+      return;
+    }
+    const res = await request("GetEditingProject", {
+      // https://help.aliyun.com/document_detail/197837.html
+      ProjectId: projectId,
+      RequestSource: "WebSDK",
+    });
+
+    if (!res.data.Project.Timeline) {
+      alert("Timeline数据为空");
+      return;
+    }
+    const timeineInfo = JSON.parse(res.data.Project.Timeline);
+    setTimelineJson(timeineInfo);
+  }, [projectId]);
+
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+
+  useEffect(() => {
+    if (!timelineJson) {
+      return;
+    }
+    player.setTimeline(timelineJson);
+  }, [player, timelineJson]);
 
   useEffect(() => {
     if (!player || materialId === undefined) {
@@ -133,6 +212,27 @@ export default function App() {
     message.success("保存成功");
   },[projectId,player]);
 
+  const handlePlay = useCallback(()=>{
+      if(!player){
+        return;
+      }
+      if(player.state === 0){
+         player.pause();
+         setPlaying(false);
+      } else{
+         player.play();
+         setPlaying(true);
+      }
+  },[player]);
+
+  const handleSeek = useCallback((val)=>{
+    if(!player){
+      return;
+    }
+      setCurrentTime(val);
+      player.currentTime = val;
+  },[player]);
+
 
   return (
     <ConfigProvider prefixCls="biz-ant" iconPrefixCls="biz-anticon">
@@ -143,8 +243,15 @@ export default function App() {
           </Space>
         </div>
         <div className="player-panel">
-          <div className="player" ref={containerRef} />
-
+          <div  className="player">
+            <div ref={containerRef} className="player-container" />
+            <div className="player-control" >
+              <div   className="play-btn" onClick={handlePlay} >
+               {playing? <PauseCircleFilled /> : <PlayCircleFilled   />}
+              </div>
+             <Slider className="time" max={duration} min={0} onChange={handleSeek} step={0.001} value={currentTime} />
+            </div>
+          </div>
           <div className="config">
             <ConfigPanel
               player={player}
@@ -162,7 +269,7 @@ export default function App() {
         </div>
         {player && (
           <TrackPanel
-            projectId={projectId}
+            tracks={tracks}
             player={player}
             onConfig={(mat) => {
               setMaterialId(mat.id);
