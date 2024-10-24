@@ -31,21 +31,23 @@
   width: 50%;
   flex:1;
   position: relative;
+  padding: 30px;
 }
 
 .player-panel .player-container{
   margin: 0 auto;
   max-width: 100%;
   max-height: 100%;
-  padding: 30px;
+
 }
 
 .player-panel .player-control{
   bottom: 0;
+  left: 0;
   position: absolute;
   width: 100%;
   display: flex;
-  bottom: -15px;
+
 }
 
 .player-panel .player-control .play-btn{

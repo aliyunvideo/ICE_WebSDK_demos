@@ -273,6 +273,7 @@ export default function App() {
             player={player}
             onConfig={(mat) => {
               setMaterialId(mat.id);
+              player && player.focusClip(mat.id);
             }}
             onAdd={(data) => {
               setCreateConfig(data);

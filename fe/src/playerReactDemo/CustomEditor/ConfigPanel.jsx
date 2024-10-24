@@ -30,12 +30,7 @@ export default function ConfigPanel({ player, materialId,  value,onConfigChange 
     [materialId, player,onConfigChange]
   );
 
-  useEffect(() => {
-    if (!player) {
-      return;
-    }
-    player.focusClip(materialId);
-  }, [player, materialId]);
+
 
 
   return (
