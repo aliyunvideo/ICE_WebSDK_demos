@@ -2,11 +2,13 @@ import ProjectTimeline from './ProjectTimeline';
 import ServerTimeline from './ServerTimeline';
 import CustomTimeline from './CustomTimeline';
 import CustomFont  from './CustomFontTimeline';
+import CustomEditor from './CustomEditor';
 import {Button, Input} from 'antd';
 import EventDemo from './EventDemo';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import ProjectTimelineCode from './ProjectTimeline?raw';
+import CustomEditorCode from './CustomEditor?raw';
 import ServerTimelineCode from './ServerTimeline?raw';
 import CustomTimelineCode from './CustomTimeline?raw';
 import CustomFontCode  from './CustomFontTimeline?raw';
@@ -34,7 +36,7 @@ function ProjectTimelineCard({path, code}) {
         alert('projectId不能为空');
         return;
       }
-      window.open(`/player.html#${ path.replace(':projectId', projectId) }`)
+      window.open(`/player-react.html#${ path.replace(':projectId', projectId) }`)
     }} >打开demo</Button></div>
 
     <h2>示例代码：</h2>
@@ -68,6 +70,11 @@ function CommonCodeCard({path, code}) {
 
 
 export const ROUTERS = [{
+  title: '简单timeline编辑器',
+  path: '/customEditor/:projectId',
+  element: <CustomEditor />,
+  card: (params) => <ProjectTimelineCard {...params} code={CustomEditorCode} />
+},{
   title: '项目Timeline预览',
   path: '/projectTimeline/:projectId',
   element: <ProjectTimeline />,

@@ -69,14 +69,14 @@ export function transMediaList (data) {
 }
 
 export function request (action, params) {
-  return axios.post('http://localhost:7001/openApiPost', {
+  return axios.post('/openApiPost', {
     ...params,
     Action: action
   })
 }
 
 export function requestGet(action, params){
-  return axios.get('http://localhost:7001/openApi', {
+  return axios.get('/openApi', {
     params:{
         ...params,
       Action: action
@@ -118,4 +118,45 @@ export async function poll(fn, fnCondition, ms, timeout = 1000 * 60 * 30) {
     timeout: false,
     result,
   };
+}
+
+
+export function pageData(items, pageSize) {
+  const total = items.length;
+  const pageCount = Math.ceil(total / pageSize);
+  return {
+    total,
+    pageSize,
+    pageCount,
+    getData: (page) => {
+      if (page > pageCount) {
+        page = pageCount;
+      }
+      if (page < 1) {
+        page = 1;
+      }
+      const pageNo = page - 1;
+      const startIndex = pageNo * pageSize;
+      let endIndex = startIndex + pageSize;
+      if (endIndex > total) {
+        endIndex = total;
+      }
+      const data = items.slice(startIndex, endIndex);
+      return data;
+    },
+  };
+}
+
+function camelCaseFromPascalCase(str) {
+  return str[0].toLowerCase() + str.slice(1);
+}
+export function objectKeyPascalCaseToCamelCase(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(objectKeyPascalCaseToCamelCase);
+  const res = {};
+  for (const key of Object.keys(obj)) {
+    const value = objectKeyPascalCaseToCamelCase(obj[key]);
+    res[camelCaseFromPascalCase(key)] = value;
+  }
+  return res;
 }
