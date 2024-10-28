@@ -46,7 +46,7 @@ export default function ProjectTimeline() {
           return null;
         }
       });
-      player.timeline = timeline;
+      player.timeline = timeineInfo;
 
     }
 

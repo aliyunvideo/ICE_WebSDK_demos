@@ -1,3 +1,3 @@
-import Player from '../playerReactDemo/ProjectTimeline';
+import Player from '../playerReactDemo/CustomEditor';
 
 export default Player;

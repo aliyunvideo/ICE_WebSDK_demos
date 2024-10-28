@@ -48,13 +48,13 @@ export default function CustomFontTimeline() {
       outputWidth: Number(timeineInfo.FECanvas.Width),
       outputHeight: Number(timeineInfo.FECanvas.Height),
     }
-    const parsedData = parseTimeline(timeineInfo, outputInfo);
+    // const parsedData = parseTimeline(timeineInfo, outputInfo);
     // 解析Timeline中的字体
     const {mediaMap, timeline, fontList} = parsedData;
     console.log('PARSED_DATA', parsedData);
     mediaMapRef.current = mediaMap;
     playerRef.current.setFontList(fontList);
-    playerRef.current.timeline = timeline;
+    playerRef.current.timeline = timeineInfo;
   },[timelineStr])
 
   return <div>

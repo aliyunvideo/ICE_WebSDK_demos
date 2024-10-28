@@ -28,6 +28,9 @@ export default defineConfig({
         target: 'http://127.0.0.1:7001',
       }
     },
+    watch: {
+      usePolling: true,   // 修复HMR热更新失效
+    },
   },
   build:{
     outDir:resolve(__dirname,'./build'),

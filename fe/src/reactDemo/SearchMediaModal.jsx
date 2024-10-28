@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Modal, Pagination, Radio } from 'antd'
 import { request, transMediaList } from '../utils'
 import MediaItem from './MediaItem'
+import './index.css'
 
 const options = [
   { label: '全部', value: 'all' },
@@ -13,14 +14,29 @@ const options = [
 const PAGE_SIZE = 20
 
 function SearchMediaModal (props) {
-  const { onSubmit, onClose } = props
+  const { onSubmit, onClose,optionFilter,defaultMediaType,mode } = props
   const [selectedMedia, setSelectedMedia] = useState([])
   const [confirmLoading, setConfirmLoading] = useState(false)
-  const [mediaType, setMediaType] = useState(options[0].value)
+  const [mediaType, setMediaType] = useState(defaultMediaType|| options[0].value)
   const [status, setStatus] = useState('loading')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [media, setMedia] = useState([])
+
+  const displayOptions = useMemo(()=>{
+    if(!optionFilter){
+      return options;
+    }
+    return optionFilter(options);
+  },[optionFilter])
+
+  useEffect(()=>{
+    if(!defaultMediaType){
+      return
+    }
+    console.log('>>defaultMediaType',defaultMediaType);
+    setMediaType(defaultMediaType);
+  },[defaultMediaType])
 
   useEffect(() => {
     setStatus('loading')
@@ -50,6 +66,10 @@ function SearchMediaModal (props) {
   }
 
   const handleClick = (item) => {
+    if(mode === 'one'){
+      setSelectedMedia([  item])
+      return;
+    }
     const index = selectedMedia.findIndex(m => m.MediaId === item.MediaId)
     if (index > -1) {
       setSelectedMedia(
@@ -76,7 +96,7 @@ function SearchMediaModal (props) {
     >
       <Radio.Group
         style={{ marginBottom: '20px' }}
-        options={options}
+        options={displayOptions}
         onChange={handleMediaTypeChange}
         value={mediaType}
         optionType="button"
